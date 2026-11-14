@@ -8,6 +8,8 @@ Stack: React + Vite frontend, Node 24 + Express + built-in SQLite backend. Run n
 
 Security: authorize every private API on the server; scope each query to session user; hash passwords with scrypt; use HttpOnly sessions and CSRF checks on writes; never store authentication tokens in browser storage. Never include service credentials in source.
 
+Planner: academic items derive from existing deadlines; never edit them when marking personal preparation complete. Store per-user overrides separately. Personal task dates are null or within the clearly labelled demo week, 16–22 November 2026. Keep bootstrap.plan and GET /api/plan consistent; preserve existing databases.
+
 Quality: Russian UI, mobile from 360px, keyboard access, visible focus, form labels, helpful loading/error/empty states. No inert buttons or fictitious AI integrations. Demo behavior must be clearly labelled.
 
 Record real prompts, decisions, tools, checks and limitations in docs. Do not invent user interviews, test results, deployment or AI services. Commit only on feat/orbita-student-portal, not main. Root agent owns integration, package files and Git commits.

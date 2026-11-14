@@ -3742,3 +3742,120 @@ textarea::placeholder {
 .muted {
   color: #526272;
 }
+
+/* Iteration 2: show useful daily information sooner on small screens. */
+@media (hover: hover) and (pointer: fine) {
+  .stat-card,
+  .quick-action,
+  .document-ready {
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+  .stat-card:hover,
+  .quick-action:hover,
+  .document-ready:hover {
+    border-color: #a4c6b7;
+    box-shadow: 0 5px 18px #193c2c08;
+  }
+}
+@media (max-width: 760px) {
+  .page-content {
+    padding-bottom: 108px;
+  }
+  .welcome-card {
+    min-height: 0;
+    padding: 20px;
+    border-radius: 18px;
+  }
+  .welcome-copy {
+    max-width: 100%;
+  }
+  .welcome-copy .mini-label,
+  .welcome-copy p {
+    display: none;
+  }
+  .welcome-copy h2 {
+    margin-top: 0;
+    font-size: 23px;
+    line-height: 1.2;
+    letter-spacing: -0.65px;
+  }
+  .welcome-button {
+    margin-top: 14px;
+    min-height: 44px;
+  }
+  .welcome-card .orbit-art {
+    opacity: 0.13;
+    pointer-events: none;
+  }
+  .dashboard-stats {
+    margin-top: 14px;
+    margin-bottom: 18px;
+  }
+  .stat-card {
+    padding: 12px 10px;
+    gap: 8px;
+  }
+  .stat-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+  }
+  .stat-icon svg {
+    width: 17px;
+    height: 17px;
+  }
+  .stat-copy strong {
+    font-size: 23px;
+  }
+  .stat-copy > span {
+    font-size: 10px;
+    line-height: 1.45;
+  }
+  .schedule-alert {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .today-card .section-heading {
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .today-card .section-heading .text-button {
+    min-height: 44px;
+    padding: 0 2px;
+  }
+  .mobile-bottom-nav {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
+/* The welcome summary now contains real plan data: keep it visible on mobile. */
+@media (max-width: 760px) {
+  .welcome-copy .mini-label {
+    display: inline-flex;
+    font-size: 10px;
+    letter-spacing: 0.8px;
+  }
+  .welcome-copy h2 {
+    display: none;
+  }
+  .welcome-copy p {
+    display: block;
+    margin-top: 10px;
+    max-width: none;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .welcome-copy p strong {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 17px;
+    line-height: 1.45;
+    color: #294c3b;
+    overflow-wrap: anywhere;
+  }
+  .welcome-copy p > br {
+    display: none;
+  }
+}

@@ -30,3 +30,9 @@ deadlines[] = {id,title,subject,date,daysLeft,priority:'high'|'normal',route}.
 Do not invent actual AI backend. Assistant is a transparent local navigator: predefined intents from user's actual data, links to appropriate routes, disclaimer «Навигатор по вашим данным · без внешнего ИИ». Creative useful feature: «Мой следующий шаг» on dashboard tied to nearest deadline, changed room and document status. Academic load/grade what-if calculator can be local and clearly hypothetical.
 
 Root handles package.json, vite.config.js, src/api.js, src/main.jsx, index.html, tests, deployment, integration. Agents must not overwrite files owned by others. Coordinate via messages. Never commit; root commits verified result.
+
+## Iteration 2 — personal plan
+
+`bootstrap.plan` and `GET /api/plan` return `{items,referenceDate}`. Item: `{id,kind:'deadline'|'personal',title,subject,dueDate:null|YYYY-MM-DD,completed,sourceRoute?}`. Academic metadata derives from immutable own deadlines; personal completion is stored separately. Custom tasks use UUIDs. `POST /api/plan {title,dueDate}` (trimmed 1–120 chars, at most100 personal tasks, null date or16–22Nov2026); `PATCH /api/plan/:id {completed:boolean}` only; `DELETE /api/plan/:id` only custom tasks. POST/PATCH return `{item}`, DELETE `{ok:true}`. All writes require session+CSRF, foreign IDs404, academic delete409.
+
+Planner({data,refresh,notify,focusId}) supports active/done/all, undo, add/delete with confirmation, generic unavailable deep links. Hash `#plan/<id>` focuses an owned item, including a completed one. Dashboard chooses first open item by dueDate (null last), then stable ID. This is personal planning, never academic submission or a grade change. Full research/review history in ITERATION_2.md.

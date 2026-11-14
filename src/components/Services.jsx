@@ -959,9 +959,10 @@ function navigatorAnswer(text, data) {
     )[0];
     return deadline
       ? {
-          text: `Ближайший шаг в демо-неделе: «${deadline.title}»${deadline.subject ? ` по предмету «${deadline.subject}»` : ""}. Срок — ${dateLabel(deadline.date)}. Начните с этой задачи, затем проверьте остальные дела на главной.`,
-          route: deadline.route || "dashboard",
-          action: "Перейти к задаче",
+          text: `Ближайший учебный срок в демо-неделе: «${deadline.title}»${deadline.subject ? ` по предмету «${deadline.subject}»` : ""}. Срок — ${dateLabel(deadline.date)}. ${data.plan?.items.find((item) => item.id === deadline.id)?.completed ? "Вы уже отметили личную готовность." : "Подготовку можно отметить в личном плане."} Личная отметка не означает сдачу работы.`,
+          route: "plan",
+          focusId: deadline.id,
+          action: "Открыть дело в плане",
         }
       : {
           text: "В вашем учебном плане пока нет ближайших дедлайнов. На главной собраны остальные полезные действия.",
@@ -1024,9 +1025,12 @@ export function Assistant({ data, onNavigate }) {
     ]);
     setQuery("");
   }
-  function navigate(route) {
-    if (onNavigate) onNavigate(route);
-    else window.location.hash = route;
+  function navigate(route, focusId) {
+    if (onNavigate) onNavigate(route, focusId);
+    else
+      window.location.hash = focusId
+        ? `${route}/${encodeURIComponent(focusId)}`
+        : route;
   }
   return (
     <div className="svc-page svc-navigator-page">
@@ -1091,7 +1095,9 @@ export function Assistant({ data, onNavigate }) {
                     {message.answer.route && (
                       <button
                         className="svc-text-button"
-                        onClick={() => navigate(message.answer.route)}
+                        onClick={() =>
+                          navigate(message.answer.route, message.answer.focusId)
+                        }
                       >
                         {message.answer.action}
                         <ArrowRight size={15} aria-hidden="true" />

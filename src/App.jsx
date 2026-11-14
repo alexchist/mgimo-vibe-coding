@@ -10,6 +10,7 @@ import {
   ChevronRight,
   CircleHelp,
   Clock3,
+  ListTodo,
   FileText,
   GraduationCap,
   LayoutDashboard,
@@ -25,6 +26,7 @@ import {
 } from "lucide-react";
 import api from "./api";
 import { Schedule, Grades } from "./components/Academics";
+import { Planner } from "./components/Planner";
 import {
   Requests,
   Notifications,
@@ -59,6 +61,12 @@ const navigation = [
     hint: "Заказать документ и проверить статус",
   },
   {
+    id: "plan",
+    title: "Мой план",
+    icon: ListTodo,
+    hint: "Личные дела, подготовка и учебные сроки",
+  },
+  {
     id: "notifications",
     title: "Уведомления",
     icon: Bell,
@@ -77,10 +85,22 @@ const navigation = [
     hint: "Ваши учебные данные",
   },
 ];
-const getRoute = () =>
-  navigation.some((n) => n.id === window.location.hash.slice(1))
-    ? window.location.hash.slice(1)
-    : "dashboard";
+const getRoute = () => {
+  const route = window.location.hash.slice(1).split("/")[0];
+  return navigation.some((n) => n.id === route) ? route : "dashboard";
+};
+const getPlanFocus = () => {
+  if (getRoute() !== "plan") return null;
+  try {
+    return (
+      decodeURIComponent(
+        window.location.hash.slice(1).split("/").slice(1).join("/"),
+      ) || null
+    );
+  } catch {
+    return "unavailable";
+  }
+};
 const requestNames = {
   enrollment: "Справка об обучении",
   scholarship: "Справка о стипендии",
@@ -361,9 +381,27 @@ function Dashboard({ data, onNavigate }) {
   const readyRequest = (data.requests || []).find(
     (item) => item.status === "ready",
   );
-  const deadline = [...(data.deadlines || [])].sort((a, b) =>
-    a.date.localeCompare(b.date),
-  )[0];
+  const planItems = data.plan?.items || [];
+  const openItems = planItems
+    .filter((item) => !item.completed)
+    .sort(
+      (a, b) =>
+        (a.dueDate || "9999").localeCompare(b.dueDate || "9999") ||
+        a.id.localeCompare(b.id),
+    );
+  const deadline = openItems[0];
+  const daysLeft = deadline?.dueDate
+    ? Math.round(
+        (Date.parse(deadline.dueDate) - Date.parse(data.referenceDate)) /
+          86400000,
+      )
+    : null;
+  const planDateLabel =
+    daysLeft === null
+      ? "Без срока"
+      : daysLeft === 0
+        ? "Сегодня в демо"
+        : `Через ${daysLeft} дн. в демо`;
   return (
     <div className="dashboard">
       <div className="dashboard-heading">
@@ -382,7 +420,7 @@ function Dashboard({ data, onNavigate }) {
       <section className="welcome-card">
         <div className="welcome-copy">
           <span className="mini-label">
-            <span /> НА ОДНОЙ ОРБИТЕ С УЧЁБОЙ
+            <span /> ЛИЧНЫЙ ПЛАН · ДЕМО-НЕДЕЛЯ
           </span>
           <h2>
             Меньше суеты.
@@ -390,13 +428,17 @@ function Dashboard({ data, onNavigate }) {
             Больше своего времени.
           </h2>
           <p>
-            Следующая пара, важный дедлайн, нужная справка.
-            <br className="desktop-break" /> Теперь не нужно искать их в разных
-            местах.
+            <strong>
+              {deadline ? deadline.title : "В личном плане всё отмечено"}
+            </strong>
+            <br />
+            {deadline ? `${planDateLabel} · ` : ""}
+            {planItems.length - openItems.length} из {planItems.length} дел
+            отмечено вами.
           </p>
           <button
             className="button welcome-button"
-            onClick={() => onNavigate("assistant")}
+            onClick={() => onNavigate("plan", deadline?.id)}
           >
             Мой следующий шаг <ArrowRight size={17} />
           </button>
@@ -574,20 +616,17 @@ function Dashboard({ data, onNavigate }) {
             </div>
             {deadline ? (
               <>
-                <span className="deadline-badge">
-                  {deadline.daysLeft === 0
-                    ? "Сегодня"
-                    : `Через ${deadline.daysLeft} дн.`}
-                </span>
+                <span className="deadline-badge">{planDateLabel}</span>
                 <h3>{deadline.title}</h3>
                 <p>{deadline.subject}</p>
                 <div className="deadline-note">
-                  <span /> Один небольшой шаг сегодня —<br />
-                  меньше спешки завтра.
+                  <span /> Личная отметка о подготовке.
+                  <br />
+                  Она не означает сдачу преподавателю.
                 </div>
                 <button
                   className="button secondary"
-                  onClick={() => onNavigate(deadline.route || "grades")}
+                  onClick={() => onNavigate("plan", deadline.id)}
                 >
                   Посмотреть детали <ArrowRight size={16} />
                 </button>
@@ -595,12 +634,15 @@ function Dashboard({ data, onNavigate }) {
             ) : (
               <>
                 <h3>Можно немного выдохнуть</h3>
-                <p>Ближайших дедлайнов нет. Загляните в расписание.</p>
+                <p>
+                  Все дела личного плана отмечены. Учебные сроки и оценки
+                  остаются без изменений.
+                </p>
                 <button
                   className="button secondary"
-                  onClick={() => onNavigate("schedule")}
+                  onClick={() => onNavigate("plan")}
                 >
-                  План на неделю <ArrowRight size={16} />
+                  Открыть мой план <ArrowRight size={16} />
                 </button>
               </>
             )}
@@ -672,6 +714,7 @@ export default function App() {
   const [phase, setPhase] = useState("loading");
   const [data, setData] = useState(null);
   const [route, setRoute] = useState(getRoute);
+  const [planFocus, setPlanFocus] = useState(getPlanFocus);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [query, setQuery] = useState("");
@@ -714,6 +757,7 @@ export default function App() {
     initialize();
     const hashChange = () => {
       setRoute(getRoute());
+      setPlanFocus(getPlanFocus());
       setMobileOpen(false);
       setQuery("");
       setSearchFocused(false);
@@ -775,10 +819,12 @@ export default function App() {
       if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, [mobileOpen]);
-  function navigate(id) {
+  function navigate(id, focusId = null) {
     if (!navigation.some((item) => item.id === id)) id = "dashboard";
-    window.location.hash = id;
+    window.location.hash =
+      id === "plan" && focusId ? `${id}/${encodeURIComponent(focusId)}` : id;
     setRoute(id);
+    setPlanFocus(id === "plan" ? focusId : null);
     setMobileOpen(false);
     setQuery("");
     setSearchFocused(false);
@@ -884,7 +930,7 @@ export default function App() {
         <div className="sidebar-separator" />
         <div className="nav-section-label">МОЙ КАБИНЕТ</div>
         <nav className="desktop-nav" aria-label="Основная навигация">
-          {navigation.slice(0, 5).map(({ id, title, icon: Icon }) => (
+          {navigation.slice(0, 6).map(({ id, title, icon: Icon }) => (
             <a
               key={id}
               href={`#${id}`}
@@ -905,7 +951,7 @@ export default function App() {
         </nav>
         <div className="sidebar-secondary">
           <div className="nav-section-label">ВАШЕ ПРОСТРАНСТВО</div>
-          {navigation.slice(5).map(({ id, title, icon: Icon }) => (
+          {navigation.slice(6).map(({ id, title, icon: Icon }) => (
             <a
               key={id}
               href={`#${id}`}
@@ -1058,6 +1104,14 @@ export default function App() {
           )}{" "}
           {route === "schedule" && <Schedule data={data} />}{" "}
           {route === "grades" && <Grades data={data} />}{" "}
+          {route === "plan" && (
+            <Planner
+              data={data}
+              refresh={refresh}
+              notify={notify}
+              focusId={planFocus}
+            />
+          )}{" "}
           {route === "requests" && (
             <Requests data={data} refresh={refresh} notify={notify} />
           )}{" "}

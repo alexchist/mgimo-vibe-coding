@@ -19,6 +19,12 @@ const captures = [
     "07-second-account.png",
     "Другой студент: отдельные данные второго аккаунта",
   ],
+  ["08-planner-desktop.png", "Итерация 2: личный план и форма своей задачи"],
+  [
+    "09-planner-mobile.png",
+    "Итерация 2: фильтры и личная готовность на 360 px",
+  ],
+  ["10-action-mobile.png", "Итерация 2: конкретный следующий шаг на телефоне"],
 ];
 const md = await readFile("docs/PROCESS.md", "utf8");
 let gallery = "";

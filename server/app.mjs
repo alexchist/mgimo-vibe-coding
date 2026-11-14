@@ -12,6 +12,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { openDatabase } from "./database.mjs";
 import { REFERENCE_DATE, SEMESTER } from "./seed.mjs";
+import { installPlanner } from "./planner.mjs";
 
 const deriveKey = promisify(scrypt);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -185,11 +186,9 @@ export function createApp(options = {}) {
       ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) &&
       !safeEqual(req.get("x-csrf-token"), session.csrf_token)
     ) {
-      return res
-        .status(403)
-        .json({
-          error: "Проверка безопасности не пройдена. Обновите страницу.",
-        });
+      return res.status(403).json({
+        error: "Проверка безопасности не пройдена. Обновите страницу.",
+      });
     }
     next();
   };
@@ -213,11 +212,9 @@ export function createApp(options = {}) {
           "Retry-After",
           String(Math.ceil((attempt.expiresAt - now) / 1000)),
         );
-        return res
-          .status(429)
-          .json({
-            error: "Слишком много попыток входа. Повторите через 15 минут.",
-          });
+        return res.status(429).json({
+          error: "Слишком много попыток входа. Повторите через 15 минут.",
+        });
       }
       attempt.count += 1;
       loginAttempts.set(ip, attempt);
@@ -271,11 +268,13 @@ export function createApp(options = {}) {
     res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: undefined });
     res.json({ ok: true });
   });
+  const getPlan = installPlanner(app, db, authenticate);
   app.get("/api/bootstrap", authenticate, (req, res) => {
     const data = {
       user: req.user,
       semester: SEMESTER,
       referenceDate: REFERENCE_DATE,
+      plan: getPlan(req.user.id),
     };
     for (const kind of [
       "schedule",
@@ -325,11 +324,9 @@ export function createApp(options = {}) {
         .get(req.user.id, idempotencyKey);
       if (previous) {
         if (previous.body_hash !== bodyHash)
-          return res
-            .status(409)
-            .json({
-              error: "Этот идентификатор уже использован для другой заявки.",
-            });
+          return res.status(409).json({
+            error: "Этот идентификатор уже использован для другой заявки.",
+          });
         return res.json({
           request: findRecord(previous.request_id, req.user.id, "requests"),
         });
@@ -341,11 +338,9 @@ export function createApp(options = {}) {
       )
       .get(req.user.id).n;
     if (count >= 200)
-      return res
-        .status(429)
-        .json({
-          error: "Достигнут лимит в 200 демонстрационных заявок для аккаунта.",
-        });
+      return res.status(429).json({
+        error: "Достигнут лимит в 200 демонстрационных заявок для аккаунта.",
+      });
     const now = new Date();
     const at = now.toISOString();
     const estimated = new Date(now);
