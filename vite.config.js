@@ -6,6 +6,7 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     strictPort: true,
-    proxy: { "/api": "http://127.0.0.1:3001" },
+    // Preserve the browser Host so the API's same-origin check also works in dev.
+    proxy: { "/api": { target: "http://127.0.0.1:3001", changeOrigin: false } },
   },
 });
