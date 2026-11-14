@@ -1,0 +1,30 @@
+{
+  "name": "orbita-student-portal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Орбита — конкурсный концепт цифрового деканата на вымышленных данных",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build",
+    "start": "node server/index.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "playwright test",
+    "verify": "npm run build && npm test && npm run test:e2e"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "marked": "^18.2.0",
+    "vite": "^7.1.0"
+  }
+}
