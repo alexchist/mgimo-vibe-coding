@@ -1,10 +1,11 @@
-import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync } from 'node:fs';
-import path from 'node:path';
-import { seedDatabase } from './seed.mjs';
+import { DatabaseSync } from "node:sqlite";
+import { mkdirSync } from "node:fs";
+import path from "node:path";
+import { seedDatabase } from "./seed.mjs";
 
 export function openDatabase(databasePath) {
-  if (databasePath !== ':memory:') mkdirSync(path.dirname(path.resolve(databasePath)), { recursive: true });
+  if (databasePath !== ":memory:")
+    mkdirSync(path.dirname(path.resolve(databasePath)), { recursive: true });
   const db = new DatabaseSync(databasePath);
   db.exec(`
     PRAGMA foreign_keys = ON;

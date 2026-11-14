@@ -1,0 +1,36 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_PATH: /app/data/orbita.sqlite
+      COOKIE_SECURE: "true"
+      TRUST_PROXY: "1"
+      APP_ORIGIN: https://${DOMAIN:?Set DOMAIN in .env}
+    volumes:
+      - orbita_data:/app/data
+    expose:
+      - "3001"
+    security_opt:
+      - no-new-privileges:true
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  orbita_data:
+  caddy_data:
+  caddy_config:
