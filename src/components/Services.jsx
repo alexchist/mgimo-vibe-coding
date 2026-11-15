@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -25,6 +25,7 @@ import {
   Wallet,
 } from "lucide-react";
 import api from "../api";
+import { navigatorAnswer } from "../navigator.js";
 import "./services.css";
 
 const TYPES = {
@@ -105,7 +106,8 @@ function StatusBadge({ status }) {
   );
 }
 
-function RequestDetails({ request, busy, onAdvance }) {
+function RequestDetails({ request, busy, onAdvance, onArchive }) {
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const status = STATUSES[request.status] || STATUSES.submitted;
   const current = STATUS_ORDER.indexOf(request.status);
   return (
@@ -206,11 +208,53 @@ function RequestDetails({ request, busy, onAdvance }) {
           ? "Учебный документ с отметкой «ОБРАЗЕЦ». Не имеет юридической силы."
           : "Кнопка имитирует работу сотрудника только в этом прототипе."}
       </p>
+      {request.archived ? (
+        <p className="svc-small-note">
+          В архиве. История и документ сохранены; заявка не занимает место в
+          лимите.
+        </p>
+      ) : (
+        request.status === "ready" && (
+          <div className="svc-archive">
+            {confirmArchive ? (
+              <>
+                <p>
+                  Перенести заявку в архив общего демоаккаунта? История и
+                  документ останутся во вкладке «Архив», освободится место для
+                  новой заявки.
+                </p>
+                <button
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => onArchive(request.id)}
+                >
+                  Подтвердить перенос
+                </button>{" "}
+                <button
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => setConfirmArchive(false)}
+                >
+                  Отмена
+                </button>
+              </>
+            ) : (
+              <button
+                className="button secondary"
+                disabled={busy}
+                onClick={() => setConfirmArchive(true)}
+              >
+                В архив
+              </button>
+            )}
+          </div>
+        )
+      )}
     </div>
   );
 }
 
-export function Requests({ data, refresh, notify }) {
+export function Requests({ data, refresh, notify, focusId }) {
   const [type, setType] = useState("enrollment");
   const [purpose, setPurpose] = useState("");
   const [comment, setComment] = useState("");
@@ -218,23 +262,46 @@ export function Requests({ data, refresh, notify }) {
   const [advancing, setAdvancing] = useState(null);
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
-  const [createdRequest, setCreatedRequest] = useState(null);
-  const [selected, setSelected] = useState(data.requests?.[0]?.id || null);
+  const [requestUpdates, setRequestUpdates] = useState({});
+  const [selected, setSelected] = useState(
+    focusId || data.requests?.find((item) => !item.archived)?.id || null,
+  );
   const [filter, setFilter] = useState("all");
   const submittingRef = useRef(false);
   const formRef = useRef(null);
   const idempotency = useRef(null);
-  const requests =
-    createdRequest &&
-    !(data.requests || []).some((request) => request.id === createdRequest.id)
-      ? [createdRequest, ...(data.requests || [])]
-      : data.requests || [];
-  const filtered = requests.filter(
-    (request) =>
-      filter === "all" ||
-      (filter === "active"
-        ? request.status !== "ready"
-        : request.status === "ready"),
+  const requests = [
+    ...(data.requests || []).map((item) => requestUpdates[item.id] || item),
+    ...Object.values(requestUpdates).filter(
+      (item) => !data.requests?.some((value) => value.id === item.id),
+    ),
+  ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  useEffect(() => {
+    setRequestUpdates({});
+  }, [data.requests]);
+  useEffect(() => {
+    if (!focusId) return;
+    setSelected(focusId);
+    setFilter(
+      data.requests?.find((item) => item.id === focusId)?.archived
+        ? "archived"
+        : "all",
+    );
+    const frame = requestAnimationFrame(() => {
+      const button = document.getElementById(`request-toggle-${focusId}`);
+      button?.focus({ preventScroll: true });
+      button?.scrollIntoView({ block: "center" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusId]);
+  const filtered = requests.filter((request) =>
+    filter === "archived"
+      ? request.archived
+      : !request.archived &&
+        (filter === "all" ||
+          (filter === "active"
+            ? request.status !== "ready"
+            : request.status === "ready")),
   );
 
   function resetIdempotency() {
@@ -262,7 +329,10 @@ export function Requests({ data, refresh, notify }) {
         headers: { "Idempotency-Key": idempotency.current },
         body: { type, purpose: purpose.trim(), comment: comment.trim() },
       });
-      setCreatedRequest(result.request);
+      setRequestUpdates((current) => ({
+        ...current,
+        [result.request.id]: result.request,
+      }));
       setSelected(result.request.id);
       setFilter("all");
       setPurpose("");
@@ -304,12 +374,47 @@ export function Requests({ data, refresh, notify }) {
     setAdvancing(id);
     setActionError("");
     try {
-      await api(`/requests/${encodeURIComponent(id)}/demo-advance`, {
-        method: "POST",
-        body: {},
-      });
-      await refresh();
+      const result = await api(
+        `/requests/${encodeURIComponent(id)}/demo-advance`,
+        {
+          method: "POST",
+          body: {},
+        },
+      );
+      setRequestUpdates((current) => ({ ...current, [id]: result.request }));
+      try {
+        await refresh();
+      } catch {
+        setActionError(
+          "Статус сохранён, но остальные данные не обновились. Обновите страницу, когда соединение восстановится.",
+        );
+      }
       notify?.("Демонстрационный статус обновлён");
+    } catch (err) {
+      setActionError(errorText(err));
+    } finally {
+      setAdvancing(null);
+    }
+  }
+
+  async function archive(id) {
+    if (advancing) return;
+    setAdvancing(id);
+    setActionError("");
+    try {
+      const result = await api(`/requests/${encodeURIComponent(id)}/archive`, {
+        method: "POST",
+      });
+      setRequestUpdates((current) => ({ ...current, [id]: result.request }));
+      setFilter("archived");
+      notify?.("Заявка в архиве. История и документ сохранены.");
+      try {
+        await refresh();
+      } catch {
+        setActionError(
+          "Заявка перенесена в архив. Обновите страницу, когда соединение восстановится.",
+        );
+      }
     } catch (err) {
       setActionError(errorText(err));
     } finally {
@@ -475,6 +580,16 @@ export function Requests({ data, refresh, notify }) {
             </h2>
             <span className="svc-eyebrow">Всё под контролем</span>
           </div>
+          <p className="svc-small-note">
+            Вне архива: {requests.filter((item) => !item.archived).length} из
+            200. Готовые заявки можно перенести в архив, сохранив документы.
+          </p>
+          {focusId && !requests.some((item) => item.id === focusId) && (
+            <p className="svc-error" role="status">
+              Заявка недоступна. Ссылка могла устареть. Ниже — только заявки
+              вашего аккаунта.
+            </p>
+          )}
           <div
             className="svc-filter-row"
             role="group"
@@ -484,6 +599,7 @@ export function Requests({ data, refresh, notify }) {
               ["all", "Все"],
               ["active", "В работе"],
               ["ready", "Готовые"],
+              ["archived", "Архив"],
             ].map(([value, label]) => (
               <button
                 key={value}
@@ -494,7 +610,11 @@ export function Requests({ data, refresh, notify }) {
                 {label}
                 {value === "ready" && (
                   <span>
-                    {requests.filter((r) => r.status === "ready").length}
+                    {
+                      requests.filter(
+                        (r) => !r.archived && r.status === "ready",
+                      ).length
+                    }
                   </span>
                 )}
               </button>
@@ -544,6 +664,7 @@ export function Requests({ data, refresh, notify }) {
                       request={request}
                       busy={advancing === request.id}
                       onAdvance={advance}
+                      onArchive={archive}
                     />
                   </div>
                 )}
@@ -554,18 +675,22 @@ export function Requests({ data, refresh, notify }) {
             <div className="card svc-empty">
               <FileCheck2 size={32} aria-hidden="true" />
               <h3>
-                {filter === "all"
-                  ? "Пока без заявок"
-                  : filter === "ready"
-                    ? "Готовых документов пока нет"
-                    : "Все вопросы решены"}
+                {filter === "archived"
+                  ? "Архив пока пуст"
+                  : filter === "all"
+                    ? "Пока без заявок"
+                    : filter === "ready"
+                      ? "Готовых документов пока нет"
+                      : "Все вопросы решены"}
               </h3>
               <p>
-                {filter === "all"
-                  ? "Выберите документ в форме — первый шаг займёт пару минут."
-                  : filter === "ready"
-                    ? "Здесь появятся документы, которые можно скачать."
-                    : "Новых заявок в работе нет. Готовые документы доступны во вкладке «Готовые»."}
+                {filter === "archived"
+                  ? "Перенесите сюда готовые заявки, чтобы освободить место для новых. Документы останутся доступными."
+                  : filter === "all"
+                    ? "Выберите документ в форме — первый шаг займёт пару минут."
+                    : filter === "ready"
+                      ? "Здесь появятся документы, которые можно скачать."
+                      : "Новых заявок в работе нет. Готовые документы доступны во вкладке «Готовые»."}
               </p>
               {filter !== "all" && (
                 <button
@@ -696,12 +821,17 @@ export function Notifications({ data, refresh, notify }) {
                     <p>{item.body}</p>
                     <div className="svc-notification-actions">
                       {item.route && (
-                        <a href={`#${item.route}`} className="svc-text-button">
+                        <a
+                          href={`#${item.route}${item.focusId ? `/${encodeURIComponent(item.focusId)}` : ""}`}
+                          className="svc-text-button"
+                        >
                           {item.route === "schedule"
                             ? "В расписание"
                             : item.route === "requests"
                               ? "К заявкам"
-                              : "К успеваемости"}
+                              : item.route === "plan"
+                                ? "Открыть дело в плане"
+                                : "К успеваемости"}
                           <ArrowRight size={15} aria-hidden="true" />
                         </a>
                       )}
@@ -873,127 +1003,6 @@ export function Profile({ data }) {
       </div>
     </div>
   );
-}
-
-function navigatorAnswer(text, data) {
-  const query = text.toLocaleLowerCase("ru");
-  if (/пар[аыуе]|расписан|заняти|аудитор|сегодня|преподав/.test(query)) {
-    const days = [
-      [/понедельник/, 1, "Понедельник, 16 ноября"],
-      [/вторник/, 2, "Вторник, 17 ноября"],
-      [/сред[ауеы]/, 3, "Среда, 18 ноября"],
-      [/четверг/, 4, "Четверг, 19 ноября"],
-      [/пятниц/, 5, "Пятница, 20 ноября"],
-      [/суббот/, 6, "Суббота, 21 ноября"],
-      [/воскресен/, 7, "Воскресенье, 22 ноября"],
-    ];
-    const match = days.find(([expression]) => expression.test(query));
-    if (/недел/.test(query) && !match) {
-      const changedCount = (data.schedule || []).filter(
-        (lesson) => lesson.changed,
-      ).length;
-      return {
-        text: `В демонстрационной неделе 16–22 ноября занятий: ${(data.schedule || []).length}. Изменений: ${changedCount}. В расписании выберите «Неделя», чтобы увидеть всё вместе, или откройте нужный день.`,
-        route: "schedule",
-        action: "Открыть расписание",
-      };
-    }
-    const [, selectedDay, label] = match || days[0];
-    const lessons = [...(data.schedule || [])]
-      .filter((item) => item.day === selectedDay)
-      .sort((a, b) => a.start.localeCompare(b.start));
-    const changed = lessons.find((item) => item.changed);
-    return {
-      text: lessons.length
-        ? `${label}: занятий — ${lessons.length}. Первое — «${lessons[0].subject}» в ${lessons[0].start}, аудитория ${lessons[0].room}.${changed ? ` Обратите внимание: «${changed.subject}» перенесено в аудиторию ${changed.room}. ${changed.changeNote || ""}` : ""} Это расписание демонстрационной недели 16–22 ноября${!match ? ", «сегодня» в демо — понедельник" : ""}.`
-        : `${label}: занятий нет. Это данные демонстрационной недели 16–22 ноября. Посмотрите другие дни в расписании.`,
-      route: "schedule",
-      action: "Открыть расписание",
-    };
-  }
-  if (/сесси|экзам|зач[её]т/.test(query)) {
-    const assessments = (data.grades || []).filter(
-      (grade) => grade.examDate && grade.examDate >= data.referenceDate,
-    );
-    const requested = /экзам/.test(query)
-      ? assessments.filter((grade) => grade.assessment === "Экзамен")
-      : /зач[её]т/.test(query)
-        ? assessments.filter((grade) => grade.assessment === "Зачёт")
-        : assessments;
-    const next = [...requested].sort((a, b) =>
-      a.examDate.localeCompare(b.examDate),
-    )[0];
-    return next
-      ? {
-          text: `Ближайший ${next.assessment === "Зачёт" ? "зачёт" : "экзамен"} в демонстрационном учебном плане — «${next.subject}», ${dateLabel(next.examDate)}. Текущий результат: ${next.score} из 100. Все даты и составляющие оценки доступны в разделе успеваемости.`,
-          route: "grades",
-          action: "Посмотреть сессию",
-        }
-      : {
-          text: "Даты подходящих экзаменов или зачётов в вашем демонстрационном плане пока не указаны. Проверьте информацию по отдельным дисциплинам в успеваемости.",
-          route: "grades",
-          action: "К успеваемости",
-        };
-  }
-  if (/оцен|успева|балл/.test(query)) {
-    const grades = data.grades || [];
-    if (!grades.length)
-      return {
-        text: "Оценок пока нет. Когда они появятся, здесь будет понятная картина успеваемости.",
-        route: "grades",
-        action: "К успеваемости",
-      };
-    const average = Math.round(
-      grades.reduce((sum, grade) => sum + grade.score, 0) / grades.length,
-    );
-    const focus = [...grades].sort((a, b) => a.score - b.score)[0];
-    return {
-      text: `Средний результат по ${grades.length} дисциплинам — ${average} из 100 (простое среднее). Больше всего внимания сейчас просит «${focus.subject}»: ${focus.score} баллов. В успеваемости можно посмотреть составляющие оценки и даты сессии.`,
-      route: "grades",
-      action: "Разобраться с оценками",
-    };
-  }
-  if (/дедлайн|срок|успеть|план|ближай|задан/.test(query)) {
-    const deadline = [...(data.deadlines || [])].sort((a, b) =>
-      a.date.localeCompare(b.date),
-    )[0];
-    return deadline
-      ? {
-          text: `Ближайший учебный срок в демо-неделе: «${deadline.title}»${deadline.subject ? ` по предмету «${deadline.subject}»` : ""}. Срок — ${dateLabel(deadline.date)}. ${data.plan?.items.find((item) => item.id === deadline.id)?.completed ? "Вы уже отметили личную готовность." : "Подготовку можно отметить в личном плане."} Личная отметка не означает сдачу работы.`,
-          route: "plan",
-          focusId: deadline.id,
-          action: "Открыть дело в плане",
-        }
-      : {
-          text: "В вашем учебном плане пока нет ближайших дедлайнов. На главной собраны остальные полезные действия.",
-          route: "dashboard",
-          action: "На главную",
-        };
-  }
-  if (/справ|заяв|документ|деканат|стипенд/.test(query)) {
-    const ready = (data.requests || []).filter(
-      (request) => request.status === "ready",
-    ).length;
-    const active = (data.requests || []).filter(
-      (request) => request.status !== "ready",
-    ).length;
-    return {
-      text: `Документы заказываются в разделе «Документы и заявки»: выберите тип, укажите, куда предоставить, и отправьте. Сейчас готовых документов: ${ready}, заявок в работе: ${active}. В каждой карточке есть история. Демо-заявки не уходят в настоящий деканат.`,
-      route: "requests",
-      action: ready ? "Посмотреть готовые документы" : "Оформить заявку",
-    };
-  }
-  if (/данн|профил|безопас|парол|почт|групп/.test(query))
-    return {
-      text: `Вы вошли как ${data.user.firstName} ${data.user.lastName}, группа ${data.user.group}. В профиле собраны ваши учебные данные. Это вымышленный аккаунт, доступ к нему опубликован для жюри — не вводите настоящую личную информацию.`,
-      route: "profile",
-      action: "Мой профиль",
-    };
-  return {
-    text: "Я умею находить ответы в данных этого кабинета: расписание, оценки, ближайшие сроки, документы и профиль. Попробуйте «Какие пары в понедельник?» или «Как заказать справку?». Я не использую внешнюю нейросеть и не могу давать официальные ответы от университета.",
-    route: null,
-    action: null,
-  };
 }
 
 export function Assistant({ data, onNavigate }) {

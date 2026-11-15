@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { seedDatabase } from "./seed.mjs";
+import { upgradeDemoRecords } from "./migrations.mjs";
 
 export function openDatabase(databasePath) {
   if (databasePath !== ":memory:")
@@ -38,7 +39,15 @@ export function openDatabase(databasePath) {
       request_id TEXT NOT NULL REFERENCES records(id),
       PRIMARY KEY (user_id, key)
     );
+    CREATE TABLE IF NOT EXISTS planner_keys (
+      user_id TEXT NOT NULL REFERENCES users(id),
+      key TEXT NOT NULL,
+      body_hash TEXT NOT NULL,
+      task_id TEXT NOT NULL,
+      PRIMARY KEY (user_id, key)
+    );
   `);
   seedDatabase(db);
+  upgradeDemoRecords(db);
   return db;
 }

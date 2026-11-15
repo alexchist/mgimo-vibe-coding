@@ -13,17 +13,18 @@ import { fileURLToPath } from "node:url";
 import { openDatabase } from "./database.mjs";
 import { REFERENCE_DATE, SEMESTER } from "./seed.mjs";
 import { installPlanner } from "./planner.mjs";
+import { installCampus } from "./campus.mjs";
+import { installKnowledge } from "./knowledge.mjs";
+import { installChannels } from "./channels.mjs";
+import { installAssistant } from "./assistant.mjs";
+import { createRequestService, REQUEST_TYPES as TYPES } from "./requests.mjs";
+import { createActionService } from "./actions.mjs";
+import { installMcp } from "./mcp.mjs";
 
 const deriveKey = promisify(scrypt);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const COOKIE_NAME = "orbita_session";
 const SESSION_MS = 12 * 60 * 60 * 1000;
-const TYPES = {
-  enrollment: "Справка об обучении",
-  scholarship: "Справка о стипендии",
-  transcript: "Выписка об успеваемости",
-  leave: "Заявление на академический отпуск",
-};
 const DUMMY_PASSWORD_HASH =
   "scrypt:orbita-demo-alisa-v1:fc48487262107cd74df64ff1ee50efc54cba32b19da49b84a097cb4928e85d21be1c0e33adad77a8a22c92c90aca05f4bec2b1d6f25db88c474d0cd23ad74a9f";
 const digest = (value) => createHash("sha256").update(value).digest("hex");
@@ -104,7 +105,13 @@ export function createApp(options = {}) {
     if (req.path.startsWith("/api/")) res.set("Cache-Control", "no-store");
     next();
   });
-  app.use(express.json({ limit: "16kb", strict: true }));
+  const ordinaryJson = express.json({ limit: "16kb", strict: true });
+  const documentJson = express.json({ limit: "3mb", strict: true });
+  app.use((req, res, next) =>
+    (req.method === "POST" && req.path === "/api/knowledge/documents"
+      ? documentJson
+      : ordinaryJson)(req, res, next),
+  );
 
   // A browser may only write from this app's origin. CSRF tokens additionally protect authenticated writes.
   app.use("/api", (req, res, next) => {
@@ -155,16 +162,37 @@ export function createApp(options = {}) {
         "INSERT INTO records (id, user_id, kind, payload_json) VALUES (?, ?, ?, ?)",
       )
       .run(record.id, userId, kind, JSON.stringify(record));
-  const addNotification = (userId, title, body) =>
-    insertRecord(userId, "notifications", {
-      id: randomUUID(),
+  let channels;
+  const notify = (userId, event) => {
+    const notification = {
+      ...event,
+      id: event.id || randomUUID(),
+      createdAt: new Date().toISOString(),
+      read: false,
+    };
+    insertRecord(userId, "notifications", notification);
+    channels?.enqueue(userId, notification);
+    return notification;
+  };
+  const addNotification = (userId, title, body, requestId) =>
+    notify(userId, {
       title,
       body,
       category: "request",
-      createdAt: new Date().toISOString(),
-      read: false,
       route: "requests",
+      focusId: requestId,
     });
+  const getProfile = (userId) => {
+    const row = db
+      .prepare("SELECT profile_json FROM users WHERE id = ?")
+      .get(userId);
+    if (!row)
+      throw Object.assign(new Error("Аккаунт не найден."), {
+        status: 404,
+        expose: true,
+      });
+    return JSON.parse(row.profile_json);
+  };
 
   const authenticate = (req, res, next) => {
     const token = cookieToken(req);
@@ -269,6 +297,52 @@ export function createApp(options = {}) {
     res.json({ ok: true });
   });
   const getPlan = installPlanner(app, db, authenticate);
+  channels = installChannels(app, db, authenticate, options.channels);
+  const campus = installCampus(app, db, authenticate, {
+    ...options.campus,
+    notify,
+  });
+  const knowledge = installKnowledge(app, db, authenticate, options.knowledge);
+  const requests = createRequestService(db, { notify });
+  const actions = createActionService(db, {
+    campus,
+    requests,
+    ...options.actions,
+  });
+  const assistant = installAssistant(app, db, authenticate, {
+    ...options.assistant,
+    campus,
+    knowledge,
+    actions,
+    getRecords,
+    getProfile,
+    getPlan,
+  });
+  const mcp = installMcp(app, db, authenticate, {
+    ...options.mcp,
+    campus,
+    knowledge,
+    actions,
+    getRecords,
+    getProfile,
+    appOrigin: configuredOrigin,
+  });
+  app.locals.services = {
+    campus,
+    knowledge,
+    channels,
+    requests,
+    actions,
+    assistant,
+    mcp,
+  };
+  app.locals.startWorkers = () => channels.start();
+  let closing;
+  app.locals.close = () =>
+    (closing ??= channels.close().finally(() => {
+      mcp.close();
+      db.close();
+    }));
   app.get("/api/bootstrap", authenticate, (req, res) => {
     const data = {
       user: req.user,
@@ -290,106 +364,29 @@ export function createApp(options = {}) {
   });
 
   app.post("/api/requests", authenticate, (req, res) => {
-    const { type, purpose, comment = "" } = req.body || {};
-    if (typeof type !== "string" || !Object.hasOwn(TYPES, type))
-      return res
-        .status(400)
-        .json({ error: "Выберите доступный тип документа." });
-    if (
-      typeof purpose !== "string" ||
-      purpose.trim().length < 3 ||
-      purpose.trim().length > 160
-    )
-      return res
-        .status(400)
-        .json({ error: "Укажите цель получения: от 3 до 160 символов." });
-    if (typeof comment !== "string" || comment.length > 1000)
-      return res
-        .status(400)
-        .json({ error: "Комментарий должен быть не длиннее 1000 символов." });
-    const idempotencyKey = req.get("idempotency-key");
-    if (idempotencyKey && !/^[a-zA-Z0-9_-]{8,100}$/.test(idempotencyKey))
-      return res
-        .status(400)
-        .json({ error: "Некорректный идентификатор отправки." });
-    const normalized = {
-      type,
-      purpose: purpose.trim(),
-      comment: comment.trim(),
-    };
-    const bodyHash = digest(JSON.stringify(normalized));
-    if (idempotencyKey) {
-      const previous = db
-        .prepare("SELECT * FROM request_keys WHERE user_id = ? AND key = ?")
-        .get(req.user.id, idempotencyKey);
-      if (previous) {
-        if (previous.body_hash !== bodyHash)
-          return res.status(409).json({
-            error: "Этот идентификатор уже использован для другой заявки.",
-          });
-        return res.json({
-          request: findRecord(previous.request_id, req.user.id, "requests"),
-        });
-      }
-    }
-    const count = db
-      .prepare(
-        "SELECT COUNT(*) AS n FROM records WHERE user_id = ? AND kind = 'requests'",
-      )
-      .get(req.user.id).n;
-    if (count >= 200)
-      return res.status(429).json({
-        error: "Достигнут лимит в 200 демонстрационных заявок для аккаунта.",
-      });
-    const now = new Date();
-    const at = now.toISOString();
-    const estimated = new Date(now);
-    let businessDays = 0;
-    while (businessDays < 3) {
-      estimated.setUTCDate(estimated.getUTCDate() + 1);
-      if (estimated.getUTCDay() !== 0 && estimated.getUTCDay() !== 6)
-        businessDays += 1;
-    }
-    const id = randomUUID();
-    const request = {
-      id,
-      number: `ОРБ-${id.slice(0, 8).toUpperCase()}`,
-      ...normalized,
-      status: "submitted",
-      createdAt: at,
-      updatedAt: at,
-      estimatedDate: estimated.toISOString().slice(0, 10),
-      history: [
-        {
-          status: "submitted",
-          at,
-          text: "Демонстрационная заявка принята. В настоящий деканат ничего не отправлено.",
-        },
-      ],
-    };
-    db.exec("BEGIN IMMEDIATE");
-    try {
-      insertRecord(req.user.id, "requests", request);
-      if (idempotencyKey)
-        db.prepare(
-          "INSERT INTO request_keys (user_id, key, body_hash, request_id) VALUES (?, ?, ?, ?)",
-        ).run(req.user.id, idempotencyKey, bodyHash, id);
-      addNotification(
-        req.user.id,
-        "Заявка принята",
-        `${TYPES[type]} · ${request.number}. Статус можно проверить в разделе заявок.`,
-      );
-      db.exec("COMMIT");
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
-    }
-    res.status(201).json({ request });
+    const result = requests.create(
+      req.user.id,
+      req.body,
+      req.get("idempotency-key"),
+    );
+    res.status(result.status).json({ request: result.request });
   });
 
   app.get("/api/requests/:id", authenticate, (req, res) => {
     const request = findRecord(req.params.id, req.user.id, "requests");
     if (!request) return res.status(404).json({ error: "Заявка не найдена." });
+    res.json({ request });
+  });
+
+  app.post("/api/requests/:id/archive", authenticate, (req, res) => {
+    const request = findRecord(req.params.id, req.user.id, "requests");
+    if (!request) return res.status(404).json({ error: "Заявка не найдена." });
+    if (request.status !== "ready")
+      return res
+        .status(409)
+        .json({ error: "В архив можно перенести только готовую заявку." });
+    request.archived = true;
+    saveRecord(req.user.id, "requests", request);
     res.json({ request });
   });
 
@@ -412,6 +409,7 @@ export function createApp(options = {}) {
         req.user.id,
         request.status === "ready" ? "Документ готов" : "Заявка в работе",
         `${request.number} · ${text}`,
+        request.id,
       );
       db.exec("COMMIT");
     } catch (error) {
@@ -474,6 +472,13 @@ export function createApp(options = {}) {
       return res.status(400).json({ error: "Некорректный JSON в запросе." });
     if (error.type === "entity.too.large")
       return res.status(413).json({ error: "Запрос слишком большой." });
+    if (
+      error.expose === true &&
+      [
+        400, 401, 403, 404, 408, 409, 410, 413, 415, 422, 429, 502, 503, 504,
+      ].includes(error.status)
+    )
+      return res.status(error.status).json({ error: error.message });
     // Do not expose SQL, paths, credentials or stack traces to the browser.
     console.error("Orbita request failed:", error.name || "Error");
     res

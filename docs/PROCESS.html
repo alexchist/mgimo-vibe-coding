@@ -2,9 +2,112 @@
 @page{size:A4;margin:18mm 16mm}*{box-sizing:border-box}body{font:13px/1.6 Arial, sans-serif;color:#162333;max-width:900px;margin:auto}h1{font-size:30px;color:#147d73}h2{font-size:20px;color:#147d73;margin-top:28px;break-after:avoid}h3{font-size:14px;break-after:avoid}p,li{orphans:3;widows:3}a{color:#147d73;overflow-wrap:anywhere}table{width:100%;border-collapse:collapse;font-size:10px;table-layout:fixed;margin:14px 0}td,th{border:1px solid #dce4e4;padding:7px;vertical-align:top;overflow-wrap:anywhere}th{background:#eaf5f0;text-align:left}tr{break-inside:avoid}code{font:9px monospace;background:#eef3f3;overflow-wrap:anywhere}pre{white-space:pre-wrap;background:#eef3f3;padding:12px}.capture{break-before:page}.capture p{color:#526272}.capture img{display:block;max-width:100%;max-height:220mm;object-fit:contain;margin:10px auto}blockquote{border-left:3px solid #147d73;padding-left:12px;color:#526272}.cover-tag{letter-spacing:2px;font-size:10px;color:#147d73}
 </style></head><body><p class="cover-tag">ЦИФРОВОЙ ДЕКАНАТ БУДУЩЕГО · КОНКУРСНЫЙ КОНЦЕПТ</p><h1>Как создавалась «Орбита» с ИИ</h1>
 <p>Документ описывает фактический процесс, исходники, проверки и реальные браузерные снимки проекта. Локальная проверка и подготовка развёртывания отделены от ещё не выполненной публичной публикации. Неудачные промежуточные варианты сохранены в истории ниже.</p>
-<h2>Текущий результат: вторая итерация</h2>
+<h2>Кампус, документы и помощник — 15 ноября 2026</h2>
+<p>Пользователь поручил реализовать пять направлений: уведомления Telegram/VK, бронирование помещений и оплату общежития, MCP для своей нейросети, RAG внутренних документов и ИИ-помощника. Он отдельно попросил повторить работу команды субагентов. После уточнения пользователь выбрал подготовку подключений без существующих ключей и демонстрационную базу с загрузкой своих документов. Хостинг остаётся вне этой итерации.</p>
+<p>Основной агент сначала прочитал код, сохранённые промпты и отчёт предыдущих итераций, затем разделил работу по <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/FEATURES_CONTRACT.md">контракту расширения</a>. Все агенты работали в общем checkout с отдельными областями владения, без дополнительных worktree и без коммитов.</p>
+<table>
+<thead>
+<tr>
+<th>Роль в этой итерации</th>
+<th>Фактическая работа и передача результата</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>research</code></td>
+<td>Изучил mipt.tech и официальные документы Telegram, VK, MCP, Yandex AI и YooKassa. Передал актуальный Yandex endpoint и заголовки, ограничения персонального MCP-токена; написал продуктовые сценарии и инструкцию подключений</td>
+</tr>
+<tr>
+<td><code>campus</code></td>
+<td>Реализовал помещения, атомарные брони, отмену, начисления, демооплату и образец квитанции; подготовил адаптер только тестового магазина YooKassa</td>
+</tr>
+<tr>
+<td><code>channels</code></td>
+<td>Реализовал привязку по одноразовому коду через проверенный webhook, локальный журнал и сохраняемую очередь событий; добавил экран подключений и управления MCP-токенами</td>
+</tr>
+<tr>
+<td><code>knowledge</code></td>
+<td>Добавил пять вымышленных документов, разбиение на фрагменты, русский лексический поиск с цитатами, загрузку TXT/MD/PDF и ограничения обработки PDF в отдельных workers</td>
+</tr>
+<tr>
+<td><code>assistant</code></td>
+<td>Реализовал локальные сценарии, уточнение недостающих полей, карточки подтверждения, ответы по источникам и серверный адаптер Yandex AI</td>
+</tr>
+<tr>
+<td><code>reviewer</code></td>
+<td>Независимо проверил изоляцию аккаунтов, конфликты и повторы, MCP настоящим SDK, доступность, мобильные экраны и сквозные сценарии; возвращал замечания владельцам модулей</td>
+</tr>
+<tr>
+<td>Основной агент</td>
+<td>Связал модули с сессиями и CSRF, вынес общую логику заявок и подтверждений, реализовал HTTP MCP и stdio-мост, обновил навигацию и выполнил итоговую интеграцию</td>
+</tr>
+</tbody></table>
+<p>Это роли агентов одной среды Codex, а не работа разных заявленных внешних моделей или интервью со студентами. Полные исследовательские ссылки — в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/FEATURES_RESEARCH.md">FEATURES_RESEARCH.md</a>, режимы и сценарии — в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/FEATURES_PRODUCT.md">FEATURES_PRODUCT.md</a>, настройки — в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/INTEGRATIONS.md">INTEGRATIONS.md</a>.</p>
+<p>Существенные решения и исправления по обратной связи:</p>
+<ul>
+<li>Два одновременных запроса не могут занять один интервал: проверка и запись происходят в транзакции. Подготовка через ИИ проверяет сетку и доступность; подтверждение проверяет их заново. Повтор после ошибки остаётся безопасным.</li>
+<li>Ассистент и MCP используют общую серверную логику заявок и броней. Модель может подготовить предложение; выполнение требует отдельного подтверждения. MCP дополнительно связывает предложение с владельцем и конкретным токеном. Поле <code>confirmed: true</code> не доказывает человеческий клик: доверенный внешний клиент обязан запросить согласие пользователя.</li>
+<li>Предварительные настройки внешних сервисов не превращены в фиктивное подключение. Без ключей помощник локальный, каналы демонстрационные, платежи меняют только вымышленный счёт. Реальные вызовы провайдеров в этой работе не выполнялись; адаптеры проверяются подставными ответами.</li>
+<li>Доставка уведомлений хранится в SQLite. Неопределённый результат после сетевого сбоя не объявляется успешным и не отправляется автоматически повторно. Уже начатую отправку нельзя гарантированно отозвать отключением канала.</li>
+<li>Поиск ограничивает документы владельцем до ранжирования. PDF обрабатывается отдельно от основного event loop, с лимитами размера, страниц, времени и параллельности. OCR и embeddings не заявляются. Генеративный ответ по найденным фрагментам включается только при настроенном Yandex AI и сопровождается источниками.</li>
+<li>Публичные демологины общие для посетителей: об этом прямо сказано перед входом, загрузкой и выдачей токенов. Изоляция Алисы от Марка не обещает приватность между двумя людьми под одним логином.</li>
+<li>Проверки обнаружили несовпадение подписи кнопки ассистента с доступным именем, недостаточный контраст карточек кампуса и возможность раскрытия внутреннего пути при ошибке статического файла. Исправлены доступные имена, цвета и выдача только явно помеченных пользовательских ошибок. Конкурирующие сборки и запуски Playwright мешали промежуточным проверкам; итоговый прогон выполняется последовательно на одной сборке.</li>
+</ul>
+<p>Итоговый <code>npm run verify</code> прошёл целиком: production-сборка, <strong>87/87 серверных результатов</strong> (84 сценария и 3 родительские группы), <strong>39/39 браузерных тестов за 2 минуты</strong>. Семь новых браузерных тестов включают пять полных сценариев и проверки всех пяти новых разделов на 1440 и 360 px. Автоматических нарушений выбранных WCAG A/AA-правил и горизонтального переполнения на проверенных состояниях нет; это не полная сертификация доступности. Ошибок JavaScript в проверяемых сценариях не было. <code>npm audit</code> сообщил <strong>0 известных уязвимостей</strong>, <code>git diff --check</code> прошёл. MCP проверен настоящим SDK по HTTP и через дочерний stdio-процесс; провайдеры проверены только изолированными подставными ответами.</p>
+<p>Размер production-сборки: JavaScript 385,91 КБ (gzip 113,37 КБ), CSS 132,88 КБ (gzip 25,65 КБ). Новые зависимости: официальный MCP SDK, Zod и pdf-parse; версии зафиксированы в lockfile, лицензии учтены в THIRD_PARTY.</p>
+<p>Пять свежих снимков реального Chromium на отдельной временной базе: <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/14-campus.png">кампус</a>, <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/15-housing.png">демооплата общежития</a>, <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/16-knowledge.png">поиск с цитатами</a>, <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/17-connections.png">каналы и MCP</a>, <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/18-assistant-mobile.png">подтверждение на телефоне</a>. Секреты подключений на снимках отсутствуют. Подробности независимого ревью — в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/FEATURES_REVIEW.md">FEATURES_REVIEW.md</a>. Старое видео и снимки ниже остаются историей предыдущих версий.</p>
+<h2>Исправления по аудиту — 15 ноября 2026</h2>
+<p>Пользователь попросил: «Соверши аудит этого проекта, найди слабые места и за что можно снять баллы по критериям», затем — «Исправь эти баги кроме хостинга». Аудит включал чтение исходного задания и кода, сборку, серверные и браузерные тесты, дополнительные реальные действия в Chromium и проверку итогового PDF. Исходный набор прошёл 30/30 серверных результатов и 26/26 браузерных тестов, но дополнительные сценарии обнаружили ошибки вне его покрытия.</p>
+<p>В этой доработке работает основной агент Codex; новые субагенты, интервью, внешние модели или пользовательские исследования не заявляются. Хостинг исключён пользователем из объёма работы. Код, проверки и обновление документов выполнены ИИ; человек задал задачу и границы.</p>
+<table>
+<thead>
+<tr>
+<th>Постановка / проверка</th>
+<th>Неудачный результат до исправления</th>
+<th>Решение и способ проверки</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Пройти от события к действию</td>
+<td>«Ваш документ готов» раскрывал другую заявку; «Вся неделя» открывала один день; «Посмотреть сессию» — дисциплины; эссе — общий раздел оценок</td>
+<td>В адресе сохраняются заявка, день, режим недели или сессии. Напоминание об эссе ведёт к его пункту плана. Сквозной тест проверяет реальные клики на 1440 и 360 px, а также обновление страницы</td>
+</tr>
+<tr>
+<td>Спросить навигатор про завтра, справку и английский</td>
+<td>Навигатор отвечал понедельником, сроком эссе и экзаменом по истории соответственно</td>
+<td>Специальные намерения проверяются раньше общих слов; относительные даты считаются от демо-дня; предмет уточняется по имеющимся дисциплинам. Неоднозначный или неизвестный предмет вызывает уточнение, а не подстановку другого экзамена</td>
+</tr>
+<tr>
+<td>Оборвать ответ после успешного сохранения задачи и повторить</td>
+<td>Две записи с разными ID; сообщение <code>Failed to fetch</code></td>
+<td>Клиент сохраняет ключ операции для повтора, сервер хранит его в SQLite. Тест обрывает реальный успешный ответ и проверяет одну задачу; серверный тест повторяет запрос после перезапуска. Сетевые ошибки переведены на русский</td>
+</tr>
+<tr>
+<td>Отделить текущие баллы от зачёта</td>
+<td>У предмета с формой «Зачёт» отображалось «Отлично» без отдельного результата аттестации</td>
+<td>Отдельные состояния: ещё не проходил, зачтено / не зачтено, результат экзамена. Старые текущие баллы не считаются доказательством сдачи; обновление базы сохраняет их без изменения. Калькулятор экзамена доступен только для экзаменационных дисциплин</td>
+</tr>
+<tr>
+<td>Проверить комплект процесса отдельно от репозитория</td>
+<td>В 20-страничном PDF не было кликабельных ссылок</td>
+<td>Генератор превращает относительные ссылки в абсолютные ссылки на ветку исходников и включает сохранённые промпты приложением. Ссылки и текст PDF проверяются после генерации</td>
+</tr>
+<tr>
+<td>Повторять демонстрацию общими аккаунтами</td>
+<td>После 200 заявок новую подать нельзя</td>
+<td>Готовую заявку можно явно перенести в архив: история и скачивание остаются, место в лимите освобождается. Архив защищён сессией и CSRF; чужая заявка недоступна. Тест заполняет лимит только во временной базе</td>
+</tr>
+<tr>
+<td>Отправить отпуск с пустой причиной напрямую в API</td>
+<td>Сервер отвечал 201, хотя форма требовала причину</td>
+<td>Сервер требует непустую причину от 10 символов; проверены пустая строка, пробелы, короткий и допустимый текст</td>
+</tr>
+</tbody></table>
+<p>Это исправления воспроизводимых ошибок, а не доказательство удобства на основе интервью. Обновление существующих баз выполняется без сброса заявок, отметок прочтения, личных задач и учебных баллов. Подробные регрессии находятся в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/tests/audit.test.mjs">серверном наборе</a> и <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/tests/e2e/audit.spec.js">браузерном наборе</a>.</p>
+<p>Фактические результаты: production-сборка успешна; <code>npm test</code> — <strong>35/35</strong> результатов (32 сценария и 3 родительских блока); полный <code>npm run test:e2e</code> — <strong>32/32</strong>, включая шесть новых браузерных тестов, доступность архива и экраны 360 px. До итогового прогона новый набор выявил нечёткое доступное имя селектора дисциплины и влияние оставленной тестовой задачи на следующий сценарий. Полю задана точная доступная подпись, созданная тестовая задача удаляется в <code>finally</code>; прежние проверки не ослаблены. Дополнительно проверен повтор после повреждённого JSON-ответа: он тоже не создаёт дубликат.</p>
+<p>Свежие снимки Chromium сняты на изолированной временной базе: <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/11-audit-archive.png">архив заявки</a>, <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/12-audit-assessment-mobile.png">результат аттестации на 360 px</a>, <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/13-audit-navigator.png">исправленные ответы навигатора</a>. Они добавлены к галерее отчёта. Старые снимки ниже обозначают историю прежних версий.</p>
+<h2>История: вторая итерация</h2>
 <p>После первой версии пользователь запросил постоянный обмен находками между исследователями, креативщиком, критиками и разработчиками в ходе работы над улучшениями. Перед изменениями два исследователя независимо проверили доступ: чтение публичных Git-репозиториев Moodle и Canvas прошло успешно, открытые страницы Moodle, W3C и shadcn/ui ответили HTTP 200. В новой среде эти источники доступны; ограничения первого исследования ниже относятся к предыдущему состоянию среды.</p>
-<p>Из четырёх идей после критики выбраны две связанные: сохраняемый «Мой план» и переход с главной к конкретному ближайшему делу. Поиск Ctrl+K и заметки к каждой паре отложены. Canvas подсказал разделение личной готовности и официальной сдачи, Moodle — приоритет сроков. Публичные исходники Frappe показали, что название страницы ещё не доказывает наличие готового сценария. Чужой код не копировался. Источники, точные замечания и согласие обоих критиков сохранены в <a href="ITERATION_2.md"><code>ITERATION_2.md</code></a> и четырёх исследовательских отчётах, на которые он ссылается.</p>
+<p>Из четырёх идей после критики выбраны две связанные: сохраняемый «Мой план» и переход с главной к конкретному ближайшему делу. Поиск Ctrl+K и заметки к каждой паре отложены. Canvas подсказал разделение личной готовности и официальной сдачи, Moodle — приоритет сроков. Публичные исходники Frappe показали, что название страницы ещё не доказывает наличие готового сценария. Чужой код не копировался. Источники, точные замечания и согласие обоих критиков сохранены в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/ITERATION_2.md"><code>ITERATION_2.md</code></a> и четырёх исследовательских отчётах, на которые он ссылается.</p>
 <p>Реализованы свои задачи с необязательной датой, фильтры, сохранение и отмена отметки готовности, удаление личной задачи с подтверждением, точные ссылки и общий источник данных плана и главной. Учебные сроки и оценки неизменны. Новая функция работает поверх существующей базы без её сброса. На телефоне приветственный блок стал компактнее и сразу показывает конкретное дело; нижняя навигация сохранила «Заявки». Дизайнер проверял реальные экраны, критики независимо проверяли сервер и пользовательские сценарии.</p>
 <table>
 <thead>
@@ -45,12 +148,12 @@
 <p>Новые зависимости не добавлены. Видео ниже показывает первую версию; новая функция представлена в свежих снимках и коде. Публичный хостинг не подключён. Исследование велось итеративно во время этой задачи; работа фоновых агентов после завершения сеанса не заявляется.</p>
 <h2>История первой версии</h2>
 <h2>Исходные условия</h2>
-<p>14 ноября 2026 года пользователь передал конкурсное задание «Цифровой деканат будущего» и попросил привлечь агентов для координации, бизнес-анализа, дизайна, креативных решений, разработки, технического руководства, исследования существующих решений, тестирования и ревью. Полный текст задания сохранён в <a href="assignment.txt"><code>assignment.txt</code></a>.</p>
+<p>14 ноября 2026 года пользователь передал конкурсное задание «Цифровой деканат будущего» и попросил привлечь агентов для координации, бизнес-анализа, дизайна, креативных решений, разработки, технического руководства, исследования существующих решений, тестирования и ревью. Полный текст задания сохранён в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/assignment.txt"><code>assignment.txt</code></a>.</p>
 <p>До разработки проверено: репозиторий <code>alexchist/mgimo-vibe-coding</code> пуст, исходного приложения и тестов нет. В среде доступны Git, Node.js/npm и Python. Пользователь отдельно указал: «Коммить все в репозиторий, но не в main ветку». Создана ветка <code>feat/orbita-student-portal</code>.</p>
 <p>Пользователь сообщил, что хостинга пока нет, и выбрал подготовку развёртывания. Поэтому публичная доступность и срок работы до 28 ноября остаются задачами публикации, а не следствием успешной локальной сборки.</p>
 <h2>Проблема, выбранная идея и происхождение требований</h2>
 <p>Разрозненность учебной информации взята из конкурсного задания. Дополнительные интервью или опросы не проводились и не заявляются. ИИ предложил структуру вокруг ближайшего действия студента: расписание и переносы, учебная ситуация, заявки с историей, уведомления и локальный навигатор.</p>
-<p>Пять обязательных разделов реализованы в прототипе. Дополнительные функции выбраны потому, что связывают эти разделы. Например, готовая справка становится действием на главной, а уведомление о переносе ведёт к расписанию. Подробные сценарии и критерии приёмки — в <a href="PRODUCT.md"><code>PRODUCT.md</code></a>.</p>
+<p>Пять обязательных разделов реализованы в прототипе. Дополнительные функции выбраны потому, что связывают эти разделы. Например, готовая справка становится действием на главной, а уведомление о переносе ведёт к расписанию. Подробные сценарии и критерии приёмки — в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/PRODUCT.md"><code>PRODUCT.md</code></a>.</p>
 <h2>Роли и организация работы</h2>
 <table>
 <thead>
@@ -182,9 +285,9 @@
 <td>Это инструкции для агента, не внешние ИИ-модели и не университетские сервисы</td>
 </tr>
 </tbody></table>
-<p>Внешний генеративный ИИ внутрь кабинета не подключается. Локальный навигатор отвечает на ограниченный набор задач по данным аккаунта. Это осознанное решение: не зависеть от ключей, стоимости и доступности внешнего API и не выдавать эвристики за языковую модель. Отдельные графические редакторы, генераторы изображений и опросные сервисы в исходной работе не использовались.</p>
+<p>В первой версии использовался только локальный навигатор. В расширении от 15 ноября добавлен опциональный серверный адаптер Yandex AI; без настроенных ключей продолжает работать явно обозначенный локальный помощник. Проверки реального внешнего провайдера в этой работе не было. Отдельные графические редакторы, генераторы изображений и опросные сервисы в исходной работе не использовались.</p>
 <h2>Ключевые постановки задач и решения</h2>
-<p>Ниже приведены реальные запросы пользователя и выдержки из управляющего контракта. Это не выдуманная стенограмма. Более подробные постановки задач разработчикам и обратная связь собраны в <a href="PROMPTS.md"><code>PROMPTS.md</code></a>.</p>
+<p>Ниже приведены реальные запросы пользователя и выдержки из управляющего контракта. Это не выдуманная стенограмма. Более подробные постановки задач разработчикам и обратная связь собраны в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/PROMPTS.md"><code>PROMPTS.md</code></a>.</p>
 <h3>1. Цель и разделение ролей</h3>
 <p>Пользователь: «Запусти множество подагентов» для управления, бизнес-анализа, дизайна, креатива, разработки, технического руководства, исследования решений, тестирования и ревью. «Набери максимальный балл».</p>
 <p>Ответственное решение: перевести критерии в проверяемые сценарии и карту доказательств. Максимальный балл остаётся целью; гарантировать оценку экспертов нельзя.</p>
@@ -202,7 +305,7 @@
 <p>На вопрос о хостинге пользователь выбрал «Хостинга пока нет — подготовить развёртывание». Следовательно, подготовка файлов публикации входит в работу; доступность готового сайта нельзя объявлять до реального размещения и внешней проверки.</p>
 <h3>6. Исследование существующих решений и исправление подхода</h3>
 <p>Исследователь проверил доступ к официальным материалам Moodle, Canvas и W3C. Прямые запросы к их сайтам вернули <code>CONNECT 403</code> в текущем окружении. Вместо неподтверждённого пересказа были прочитаны официальные исходники с GitHub, полученные с HTTP 200: панель и Timeline Moodle, варианты Dashboard Canvas, пояснения WCAG о размере целей, видимом фокусе и перестроении страницы.</p>
-<p>В продукт перенесены принципы: ближайшие события на главной, разные представления для разных задач, явные ошибки, названия кнопок-иконок, заметный фокус, мобильные цели около 44 px. Подробные наблюдения и ссылки — в <a href="RESEARCH.md"><code>RESEARCH.md</code></a>. Это пример уточнения метода после ограничения среды, а не утверждение, что исходные сайты недоступны российскому пользователю.</p>
+<p>В продукт перенесены принципы: ближайшие события на главной, разные представления для разных задач, явные ошибки, названия кнопок-иконок, заметный фокус, мобильные цели около 44 px. Подробные наблюдения и ссылки — в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/RESEARCH.md"><code>RESEARCH.md</code></a>. Это пример уточнения метода после ограничения среды, а не утверждение, что исходные сайты недоступны российскому пользователю.</p>
 <h2>Как устроена защита — простыми словами</h2>
 <p>Архитектурное решение: браузер отправляет логин и пароль серверу. Сервер сравнивает пароль с защищённым производным значением, полученным через scrypt; открытый пароль в базе не нужен. После входа браузер получает HttpOnly-cookie с идентификатором сессии, который JavaScript страницы не читает. При изменениях проверяется CSRF-токен.</p>
 <p>Каждую заявку сервер ищет одновременно по её идентификатору и владельцу из сессии. Поэтому знание чужого номера не даёт доступ. SQLite хранит данные между перезагрузками и перезапусками приложения; при развёртывании файл базы должен находиться в постоянном томе. В продуктивной конфигурации нужны HTTPS и защищённые cookie.</p>
@@ -217,35 +320,35 @@
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="screenshots/01-first-dashboard.png"><code>01-first-dashboard.png</code></a></td>
+<td><a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/01-first-dashboard.png"><code>01-first-dashboard.png</code></a></td>
 <td>Первая интегрированная главная: аккуратная композиция, но слишком бледные и мелкие подписи — реальный неудачный аспект первой версии</td>
 </tr>
 <tr>
-<td><a href="screenshots/02-dashboard.png"><code>02-dashboard.png</code></a></td>
+<td><a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/02-dashboard.png"><code>02-dashboard.png</code></a></td>
 <td>Главная после улучшения читаемости: занятия, изменение аудитории, ближайший шаг и готовый документ</td>
 </tr>
 <tr>
-<td><a href="screenshots/03-schedule.png"><code>03-schedule.png</code></a></td>
+<td><a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/03-schedule.png"><code>03-schedule.png</code></a></td>
 <td>Расписание демонстрационной недели и заметные изменения</td>
 </tr>
 <tr>
-<td><a href="screenshots/04-grades.png"><code>04-grades.png</code></a></td>
+<td><a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/04-grades.png"><code>04-grades.png</code></a></td>
 <td>Учебные результаты, составляющие оценки и условный калькулятор</td>
 </tr>
 <tr>
-<td><a href="screenshots/05-requests.png"><code>05-requests.png</code></a></td>
+<td><a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/05-requests.png"><code>05-requests.png</code></a></td>
 <td>Форма документа, список и история заявки</td>
 </tr>
 <tr>
-<td><a href="screenshots/06-mobile.png"><code>06-mobile.png</code></a></td>
+<td><a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/06-mobile.png"><code>06-mobile.png</code></a></td>
 <td>Настоящий viewport шириной 360 px, адаптивная главная</td>
 </tr>
 <tr>
-<td><a href="screenshots/07-second-account.png"><code>07-second-account.png</code></a></td>
+<td><a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/screenshots/07-second-account.png"><code>07-second-account.png</code></a></td>
 <td>Второй вымышленный студент с собственным профилем</td>
 </tr>
 <tr>
-<td><a href="DEMO.mp4"><code>DEMO.mp4</code></a></td>
+<td><a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/DEMO.mp4"><code>DEMO.mp4</code></a></td>
 <td>Запись 43 секунды: реальные действия входа, учебных разделов, заявки до скачивания, второго аккаунта и телефона</td>
 </tr>
 </tbody></table>
@@ -325,7 +428,7 @@
 <td>Сертификат не добавлен в Git или слой образа; после корректировки сборка прошла</td>
 </tr>
 </tbody></table>
-<p>Замечания возникли при работе ИИ и были проверены другим агентом, а не скрыты за общим заявлением «всё готово». Детали независимой проверки — в <a href="REVIEW.md"><code>REVIEW.md</code></a>.</p>
+<p>Замечания возникли при работе ИИ и были проверены другим агентом, а не скрыты за общим заявлением «всё готово». Детали независимой проверки — в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/REVIEW.md"><code>REVIEW.md</code></a>.</p>
 <h3>Реальная контейнерная проверка</h3>
 <p>Агент сервера собрал исправленный образ и запустил одноразовый контейнер от пользователя <code>node</code> (uid 1000). Контейнер отдал собранные HTML и JavaScript, выполнил вход, вернул шесть дисциплин и сохранил новую заявку. После перезапуска с тем же именованным томом заявка и сессия сохранились. Временные контейнер и том после проверки удалены. Конфигурация Compose проверена с тестовым значением <code>DOMAIN</code>.</p>
 <p>Это проверка контейнерной инфраструктуры и сохранения данных. Она не является подтверждением публичных DNS, HTTPS или доступности из России; фактический хостинг ещё требуется. Для финальной версии используются команды из <code>DEPLOYMENT.md</code> и актуальная сборка приложения.</p>
@@ -391,8 +494,75 @@
 <p>ИИ анализирует требования, предлагает продуктовую концепцию, пишет исходный код, интерфейсные тексты и документы, запускает проверки и исправляет выявленные ошибки. Запуск команды агентом не называется ручной разработкой человека.</p>
 <p>Выбор и оплата хостинга, предоставление доступа к нему, окончательная проверка доступности из России и отправка работы капитаном в конкурсный кабинет пока не подтверждены. Они должны быть отражены как выполненные только после фактического выполнения.</p>
 <h2>Подготовка к сдаче</h2>
-<p>Полный чек-лист и сценарий расширенного видео до 5 минут находятся в <a href="PRODUCT.md"><code>PRODUCT.md</code></a>. Команда <code>npm run report</code> экспортирует этот документ вместе с фактическими изображениями в <code>PROCESS.html</code> и <code>PROCESS.pdf</code>. Для жюри предназначен PDF со скриншотами, исходники отдельной ветки, краткое видео и, после развёртывания, публичная ссылка с двумя тестовыми аккаунтами.</p>
+<p>Полный чек-лист и сценарий расширенного видео до 5 минут находятся в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/PRODUCT.md"><code>PRODUCT.md</code></a>. Команда <code>npm run report</code> экспортирует этот документ вместе с фактическими изображениями в <code>PROCESS.html</code> и <code>PROCESS.pdf</code>. Для жюри предназначен PDF со скриншотами, исходники отдельной ветки, краткое видео и, после развёртывания, публичная ссылка с двумя тестовыми аккаунтами.</p>
 <h2>Проверка режима разработки и выпуск материалов</h2>
 <p>После production-проверок отдельно запущен <code>npm run dev</code>. Реальный вход через Vite сначала получил 403: строковая настройка proxy меняла Host и нарушала серверную проверку Origin. Исправление — явный <code>changeOrigin: false</code>, без ослабления защиты API. Повторный браузерный проход подтвердил вход и создание заявки (201), ошибок JavaScript нет.</p>
 <p>В первой версии PDF сформирован из этого документа и семи реальных снимков; во второй добавлены ещё три. Управляемый браузер запретил file://; генератор использует разрешённый <code>page.setContent</code> с внедрёнными изображениями, не меняя политику браузера. Результат проверен через PDF metadata и извлечение русского текста. Видео первой версии — 43 секунды фактических действий в Chromium, без озвучки; кадры собраны FFmpeg, а не заменены макетами.</p>
-<section class="capture"><h2>Первая интегрированная версия главной до финального прохода проверки</h2><p>01-first-dashboard.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/01-first-dashboard.png" alt="Первая интегрированная версия главной до финального прохода проверки" /></section><section class="capture"><h2>Главная: расписание, ближайший шаг и документы</h2><p>02-dashboard.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/02-dashboard.png" alt="Главная: расписание, ближайший шаг и документы" /></section><section class="capture"><h2>Расписание и явное изменение аудитории</h2><p>03-schedule.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/03-schedule.png" alt="Расписание и явное изменение аудитории" /></section><section class="capture"><h2>Успеваемость, компоненты результата и гипотетическая модель</h2><p>04-grades.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/04-grades.png" alt="Успеваемость, компоненты результата и гипотетическая модель" /></section><section class="capture"><h2>Создание заявки и прозрачная история статусов</h2><p>05-requests.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/05-requests.png" alt="Создание заявки и прозрачная история статусов" /></section><section class="capture"><h2>Главная на телефоне шириной 360 px</h2><p>06-mobile.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/06-mobile.png" alt="Главная на телефоне шириной 360 px" /></section><section class="capture"><h2>Другой студент: отдельные данные второго аккаунта</h2><p>07-second-account.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/07-second-account.png" alt="Другой студент: отдельные данные второго аккаунта" /></section><section class="capture"><h2>Итерация 2: личный план и форма своей задачи</h2><p>08-planner-desktop.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/08-planner-desktop.png" alt="Итерация 2: личный план и форма своей задачи" /></section><section class="capture"><h2>Итерация 2: фильтры и личная готовность на 360 px</h2><p>09-planner-mobile.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/09-planner-mobile.png" alt="Итерация 2: фильтры и личная готовность на 360 px" /></section><section class="capture"><h2>Итерация 2: конкретный следующий шаг на телефоне</h2><p>10-action-mobile.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/10-action-mobile.png" alt="Итерация 2: конкретный следующий шаг на телефоне" /></section></body></html>
+<hr>
+<h1>Приложение: сохранённые постановки задач</h1>
+<p>Это выдержки из фактических задач в сессии Codex, а не выдуманный диалог. Общий полный контракт находится в <code>CONTRACT.md</code>, инструкции для дальнейшей работы — в корневом <code>AGENTS.md</code>.</p>
+<h2>Анализ и координация</h2>
+<blockquote>
+<p>You are project coordinator + business analyst + creative lead. Read /workspace/mgimo-vibe-coding/docs/assignment.txt, AGENTS.md, docs/CONTRACT.md. Own docs/PRODUCT.md and docs/PROCESS.md only. Build thorough but concise competition rubric mapping, user scenarios, meaningful creative differentiators and evidence collection plan. Document real multi-agent process/prompts honestly; no invented interviews or claims of tests. Coordinate with other named agents by messages as helpful; inspect progress later and identify omissions to root. Russian documents. Must include exact submission checklist and video storyboard &lt;5min. Do not modify source/package files. Need working prototype, not just plan. Send actionable findings promptly. Read actual tool results before asserting facts.</p>
+</blockquote>
+<p>Аналитик выделил риск недоказанной публичной доступности и уточнил, что 28 ноября — срок доступности до итогов, а не указанный в тексте дедлайн подачи. Это отражено в документации.</p>
+<h2>Сервер и безопасность</h2>
+<blockquote>
+<p>Implement full secure backend in /workspace/mgimo-vibe-coding/server/* only. Read AGENTS.md and docs/CONTRACT.md EXACT API. Node24 Express and node:sqlite DatabaseSync (no third party db dependency). SQLite data/ persistent, injectable DATABASE_PATH and PORT, server export createApp or similar for tests; server/index.mjs runs production static dist and Vite dev proxy uses port3001. Two fictional users public demo credentials contract, all data per user, scrypt password hashes (prefer seeded hardcoded derived hash constants so no plaintext password stored); HttpOnly SameSite session cookies crypto random hash in DB, CSRF token for writes, Origin check, login rate limit, expiration, security headers, request input validation, own-resource 404.</p>
+</blockquote>
+<p>Продолжение задания включало отдельные расписания и оценки, историю заявок, идемпотентность, экранирование скачиваемого HTML и явную маркировку демосимуляции.</p>
+<p>Реальная интеграционная обратная связь серверного агента: все POST требуют JSON, включая logout и demo-advance. После этого общий <code>api.js</code> стал автоматически отправлять пустой JSON-объект для запросов изменения без тела.</p>
+<h2>Дизайн и главная</h2>
+<blockquote>
+<p>You are UI designer + frontend lead. Implement src/App.jsx, src/styles.css ONLY in /workspace/mgimo-vibe-coding. Read AGENTS.md and docs/CONTRACT.md exact imports/components/data. Build beautiful Russian polished responsive app login + sidebar/nav shell + dashboard. Design must feel excellent: editorial typography, off-white, teal/mint/apricot, purposeful asymmetrical card dashboard, own orbital CSS/SVG mark, attractive welcome hero with vector orbital motif (no stock/official assets), clean whitespace, icons lucide-react.</p>
+</blockquote>
+<p>Дополнительные требования: обе демоучётки на входе, действующие маршруты, реальные данные API, уведомления, видимый фокус, доступность на 360 px и фиксированная подписанная демо-неделя.</p>
+<h2>Расписание и успеваемость</h2>
+<blockquote>
+<p>Schedule: today/week tabs, days, times/teacher/rooms, clear changed lesson original vs updated details, functional filters, empty states, readable 360px cards, useful ICS download (escape/valid calendar; fixed demo Nov16 week indicated). Grades: overview weighted score/attendance/status, subjects and assessment/session dates, expandable grade components, functional hypothetical goal calculator if sensible with honest assumptions.</p>
+</blockquote>
+<p>Ревью выявило экспорт <code>TZID=Europe/Moscow</code> без определения <code>VTIMEZONE</code>. Агент заменил время событий на UTC с явным переводом из московского времени. Это фактическое улучшение совместимости, а не косметическое изменение.</p>
+<h2>Заявки и локальный навигатор</h2>
+<blockquote>
+<p>Requests polished type selection form purpose/comment validation, submit persisted API, prevent double-submit, list requests, detail history/status/expected date, explicit &#39;Демо: следующий этап&#39; POST simulation and downloadable only ready document via API link (plain download request GET no csrf). Visible demo not sent real office. Notifications filters and mark read/all, actionable navigation hash. Profile rich exact fictional data accessible. Assistant local intent navigator NO external AI claims; input handles schedule/grades/deadlines/documents using actual user data with useful action links, suggested queries, transparent label local navigator.</p>
+</blockquote>
+<p>Реальные замечания тимлида: тип <code>leave</code> показывался как произвольный вопрос, а сервер готовил заявление на академический отпуск; сроки 2/3/5 дней не соответствовали серверным трём рабочим дням. Исправлены названия, пояснения и сроки. Успешное создание заявки отделено от возможной ошибки последующего обновления списка, чтобы интерфейс не предлагал повторную отправку уже принятой заявки.</p>
+<p>Ревьюер также заметил: запрос о ближайшем экзамене возвращал средний балл, а запрос о среде — понедельник. Навигатор получил явные обработчики экзаменов и дней недели.</p>
+<h2>Независимая проверка</h2>
+<blockquote>
+<p>Role: research existing student portal best practices + independent reviewer/test designer. Read /workspace/mgimo-vibe-coding/docs/assignment.txt AGENTS.md CONTRACT. Own docs/RESEARCH.md and docs/REVIEW.md only, no application edits initially. Research via public official pages using curl if browser tools unavailable; fetch safely no credentials (Canvas Student, Moodle dashboard, UK university student portal or WCAG official). Explain applicable patterns with source links and explicitly distinguish observed vs inferred, avoid invented research.</p>
+</blockquote>
+<p>После готовности API ревьюеру выделен отдельный файл тестов для проверки хранения хешей, Secure-cookie, CSRF, истечения и ротации сессий, повторной заявки с другим телом и неизвестных API-адресов. Координатор получил дополнительную роль тестировщика и отдельное владение браузерными сценариями.</p>
+<h2>Развёртывание</h2>
+<p>Серверный агент при ревью Dockerfile обнаружил реальные права доступа 0700/0600 у исходников: после COPY от root процесс под <code>USER node</code> не смог бы прочитать сервер. Добавлен <code>COPY --chown=node:node</code> для файлов среды исполнения. Docker Compose и конфигурация HTTPS проверяются отдельно от реального размещения.</p>
+<h2>Принцип работы команды</h2>
+<p>Области владения файлами не пересекались; общий контракт уменьшал риск несовместимых интерфейсов. Исправления направлялись владельцу модуля, а тимлид повторно проверял интеграцию. Успешный ответ агента не считался заменой выполненного теста. Итоговые результаты и реальные изображения находятся в <code>PROCESS.md</code>, <code>REVIEW.md</code> и <code>screenshots/</code>.</p>
+<h2>Аудит и исправления — 15 ноября 2026</h2>
+<p>Дословный запрос пользователя:</p>
+<blockquote>
+<p>Соверши аудит этого проекта, найди слабые места и за что можно снять баллы по критериям</p>
+</blockquote>
+<p>Основной агент прочитал критерии, выполнил тесты и дополнительные проверки в браузере. В частности, вопрос «Какой срок изготовления справки?» возвращал срок эссе; вопрос «Какие пары завтра?» — понедельник; вопрос «Какой у меня ближайший экзамен по английскому?» — экзамен по истории. Потерянный после сохранения ответ API привёл к дубликату личной задачи. В PDF обнаружено отсутствие кликабельных ссылок. Это наблюдения по работающему приложению, не выдуманные отзывы студентов.</p>
+<p>Следующий дословный запрос пользователя:</p>
+<blockquote>
+<p>Исправь эти баги кроме хостинга</p>
+</blockquote>
+<p>Решения агента: адресные переходы для заявок, расписания и сессии; разбор конкретного намерения и предмета в локальном навигаторе; сохраняемые ключи повторных операций; отдельный результат аттестации; архив готовых заявок без удаления истории; серверная проверка причины отпуска; самостоятельный PDF с сохранёнными промптами и абсолютными ссылками. Новая делегация субагентам в этом этапе не применялась.</p>
+<p>Доказательства проверяются в <code>tests/audit.test.mjs</code> (повтор после перезапуска, чужие аккаунты, лимит, миграция старой базы, запросы навигатору) и <code>tests/e2e/audit.spec.js</code> (реальные переходы, потеря ответа, мобильный архив, результат зачёта). Результаты команд приведены в текущем дополнении <code>PROCESS.md</code>, без приписывания проверок, которые ещё не выполнены.</p>
+<h2>Пять направлений расширения — 15 ноября 2026</h2>
+<p>Дословные пункты нового запроса пользователя:</p>
+<blockquote>
+<p>Какие фичи я хочу добавить:</p>
+<ol>
+<li>уведомления о каких-то изменениях в тг/вк</li>
+<li>подобие <a href="https://mipt.tech/">https://mipt.tech/</a> чтобы можно было резервировать какие-то общественные помещения, оплачивать общагу</li>
+<li>mcp сервер, чтобы человек мог наблюдать за своим расписание/бронировать помещения и тп через свою нейронку</li>
+<li>rag систему каких-то внутренних документов. Чтобы можно было легко искать какую-то внутреннюю информацию по приказам и тп</li>
+<li>ИИ ассистента (скорее всего, добавим через yandex ai какого-нибудь qwen), чтобы можно было прям ему писать запрос типа Какое у меня завтра расписание, Закажи справку по чему-либо, в общем, как на госуслугах</li>
+</ol>
+<p>Попытайся это всё реализовать. Посмотри как писал прошлый агент (у него были субагенты, которые выполняли какие-то роли) и сделай так же</p>
+</blockquote>
+<p>Агент уточнил наличие подключений и предложил пока реализовывать адаптеры с явно обозначенным деморежимом без реальных списаний. Ответ пользователя: <strong>«Пока ничего нет — готовим подключения»</strong>. На выбор настоящих документов или учебной базы с загрузкой через интерфейс пользователь ответил: <strong>«Демобаза и загрузка документов»</strong>.</p>
+<p>Основной агент применил делегацию шести ролям: исследование, кампус, каналы, документы, помощник, независимое ревью. Постановки в пересказе, не дословная стенограмма: исследовать первичные источники; реализовать каждый модуль в закреплённых файлах; держать данные в SQLite и проверять владельца на сервере; отделить demo от реальных провайдеров; сохранить прежние сценарии кабинета; проверить интеграцию HTTP/SDK/браузером. Конкретные signatures и границы файлов зафиксированы в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/FEATURES_CONTRACT.md">FEATURES_CONTRACT.md</a>.</p>
+<p>Примеры реально переданной обратной связи: исследователь уточнил новый endpoint Yandex и ограничение MCP Bearer без OAuth; критик потребовал проверять слот уже при подготовке и повторно при подтверждении; основной агент обнаружил опасный для большого файла base64-regex и предложил линейную проверку; агент документов перенёс PDF в ограниченные workers; критик отметил неопределённую доставку при отключении канала во время запроса; после axe-проверок исправлены подписи и контраст. Результаты и ограничения отражены в <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/PROCESS.md">PROCESS.md</a> и <a href="https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/FEATURES_REVIEW.md">FEATURES_REVIEW.md</a>.</p>
+<section class="capture"><h2>Первая интегрированная версия главной до финального прохода проверки</h2><p>01-first-dashboard.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/01-first-dashboard.png" alt="Первая интегрированная версия главной до финального прохода проверки" /></section><section class="capture"><h2>Главная: расписание, ближайший шаг и документы</h2><p>02-dashboard.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/02-dashboard.png" alt="Главная: расписание, ближайший шаг и документы" /></section><section class="capture"><h2>Расписание и явное изменение аудитории</h2><p>03-schedule.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/03-schedule.png" alt="Расписание и явное изменение аудитории" /></section><section class="capture"><h2>Успеваемость, компоненты результата и гипотетическая модель</h2><p>04-grades.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/04-grades.png" alt="Успеваемость, компоненты результата и гипотетическая модель" /></section><section class="capture"><h2>Создание заявки и прозрачная история статусов</h2><p>05-requests.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/05-requests.png" alt="Создание заявки и прозрачная история статусов" /></section><section class="capture"><h2>Главная на телефоне шириной 360 px</h2><p>06-mobile.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/06-mobile.png" alt="Главная на телефоне шириной 360 px" /></section><section class="capture"><h2>Другой студент: отдельные данные второго аккаунта</h2><p>07-second-account.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/07-second-account.png" alt="Другой студент: отдельные данные второго аккаунта" /></section><section class="capture"><h2>Итерация 2: личный план и форма своей задачи</h2><p>08-planner-desktop.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/08-planner-desktop.png" alt="Итерация 2: личный план и форма своей задачи" /></section><section class="capture"><h2>Итерация 2: фильтры и личная готовность на 360 px</h2><p>09-planner-mobile.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/09-planner-mobile.png" alt="Итерация 2: фильтры и личная готовность на 360 px" /></section><section class="capture"><h2>Итерация 2: конкретный следующий шаг на телефоне</h2><p>10-action-mobile.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/10-action-mobile.png" alt="Итерация 2: конкретный следующий шаг на телефоне" /></section><section class="capture"><h2>После аудита: архив заявки с сохранённой историей и документом</h2><p>11-audit-archive.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/11-audit-archive.png" alt="После аудита: архив заявки с сохранённой историей и документом" /></section><section class="capture"><h2>После аудита: текущие баллы и аттестация отдельно, 360 px</h2><p>12-audit-assessment-mobile.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/12-audit-assessment-mobile.png" alt="После аудита: текущие баллы и аттестация отдельно, 360 px" /></section><section class="capture"><h2>После аудита: ответы про завтра, срок справки и выбранный предмет</h2><p>13-audit-navigator.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/13-audit-navigator.png" alt="После аудита: ответы про завтра, срок справки и выбранный предмет" /></section><section class="capture"><h2>Новая итерация: помещения, свободное время и сохранённая бронь</h2><p>14-campus.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/14-campus.png" alt="Новая итерация: помещения, свободное время и сохранённая бронь" /></section><section class="capture"><h2>Общежитие: демооплата и образцы квитанций без списания денег</h2><p>15-housing.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/15-housing.png" alt="Общежитие: демооплата и образцы квитанций без списания денег" /></section><section class="capture"><h2>База знаний: поиск по документам с точными цитатами</h2><p>16-knowledge.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/16-knowledge.png" alt="База знаний: поиск по документам с точными цитатами" /></section><section class="capture"><h2>Подключения: локальный журнал Telegram/VK и права MCP</h2><p>17-connections.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/17-connections.png" alt="Подключения: локальный журнал Telegram/VK и права MCP" /></section><section class="capture"><h2>Помощник на 360 px: отдельное подтверждение заявки</h2><p>18-assistant-mobile.png · реальный браузер Chromium · вымышленные данные</p><img src="screenshots/18-assistant-mobile.png" alt="Помощник на 360 px: отдельное подтверждение заявки" /></section></body></html>

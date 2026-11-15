@@ -414,7 +414,7 @@ test("360px viewport supports every section and a new request without overflow",
     "Демо-заявки не уходят в настоящий деканат",
   );
   await page
-    .getByRole("button", { name: "Посмотреть готовые документы", exact: true })
+    .getByRole("button", { name: "Открыть заявки", exact: true })
     .click();
   await expect(
     page.getByRole("heading", {

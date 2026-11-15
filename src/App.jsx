@@ -3,6 +3,10 @@ import {
   ArrowDownToLine,
   ArrowRight,
   Bell,
+  Building2,
+  LibraryBig,
+  Plug,
+  Wallet,
   BookOpen,
   CalendarDays,
   Check,
@@ -27,12 +31,11 @@ import {
 import api from "./api";
 import { Schedule, Grades } from "./components/Academics";
 import { Planner } from "./components/Planner";
-import {
-  Requests,
-  Notifications,
-  Profile,
-  Assistant,
-} from "./components/Services";
+import { Requests, Notifications, Profile } from "./components/Services";
+import { Campus, Housing } from "./components/Campus";
+import { Knowledge } from "./components/Knowledge";
+import { Connections } from "./components/Connections";
+import { AIAssistant } from "./components/AIAssistant";
 import "./styles.css";
 
 const navigation = [
@@ -73,10 +76,34 @@ const navigation = [
     hint: "Новости и важные изменения",
   },
   {
+    id: "campus",
+    title: "Кампус",
+    icon: Building2,
+    hint: "Общественные помещения и бронирования",
+  },
+  {
+    id: "housing",
+    title: "Общежитие",
+    icon: Wallet,
+    hint: "Начисления, оплата и квитанции",
+  },
+  {
+    id: "knowledge",
+    title: "База знаний",
+    icon: LibraryBig,
+    hint: "Поиск в приказах, правилах и своих документах",
+  },
+  {
+    id: "connections",
+    title: "Подключения",
+    icon: Plug,
+    hint: "Уведомления Telegram, VK и MCP для своего ИИ",
+  },
+  {
     id: "assistant",
     title: "Навигатор",
     icon: Sparkles,
-    hint: "Найти следующий шаг",
+    hint: "ИИ-помощник: расписание, документы, заявки и брони",
   },
   {
     id: "profile",
@@ -89,8 +116,7 @@ const getRoute = () => {
   const route = window.location.hash.slice(1).split("/")[0];
   return navigation.some((n) => n.id === route) ? route : "dashboard";
 };
-const getPlanFocus = () => {
-  if (getRoute() !== "plan") return null;
+const getRouteContext = () => {
   try {
     return (
       decodeURIComponent(
@@ -240,7 +266,7 @@ function Login({ onLogin }) {
         </div>
         <div className="login-story-footer">
           <span>
-            <ShieldCheck size={17} /> Только ваши данные
+            <ShieldCheck size={17} /> Вымышленные учебные данные
           </span>
           <span>Больше времени на главное</span>
         </div>
@@ -302,7 +328,8 @@ function Login({ onLogin }) {
             <span>ПОСМОТРЕТЬ ДЕМО</span>
           </div>
           <p className="demo-intro">
-            Выберите студента. У каждого — свой кабинет и свои данные.
+            Выберите студента. Это общие демоаккаунты: другие посетители с тем
+            же логином видят изменения.
           </p>
           <div className="demo-accounts">
             <button
@@ -376,10 +403,10 @@ function Dashboard({ data, onNavigate }) {
       )
     : 0;
   const pendingRequests = (data.requests || []).filter(
-    (item) => item.status !== "ready",
+    (item) => !item.archived && item.status !== "ready",
   );
   const readyRequest = (data.requests || []).find(
-    (item) => item.status === "ready",
+    (item) => !item.archived && item.status === "ready",
   );
   const planItems = data.plan?.items || [];
   const openItems = planItems
@@ -510,7 +537,7 @@ function Dashboard({ data, onNavigate }) {
               </div>
               <button
                 className="text-button"
-                onClick={() => onNavigate("schedule")}
+                onClick={() => onNavigate("schedule", "week")}
               >
                 Вся неделя <ArrowRight size={16} />
               </button>
@@ -684,7 +711,7 @@ function Dashboard({ data, onNavigate }) {
           {readyRequest && (
             <button
               className="document-ready"
-              onClick={() => onNavigate("requests")}
+              onClick={() => onNavigate("requests", readyRequest.id)}
             >
               <span className="ready-icon">
                 <Check size={18} />
@@ -702,7 +729,8 @@ function Dashboard({ data, onNavigate }) {
       </div>
       <footer className="dashboard-footnote">
         <span>
-          <ShieldCheck size={14} /> Только вы видите свои учебные данные
+          <ShieldCheck size={14} /> Общий демоаккаунт · только вымышленные
+          данные
         </span>
         <span>Демонстрационные данные · не официальный сервис МГИМО</span>
       </footer>
@@ -714,7 +742,7 @@ export default function App() {
   const [phase, setPhase] = useState("loading");
   const [data, setData] = useState(null);
   const [route, setRoute] = useState(getRoute);
-  const [planFocus, setPlanFocus] = useState(getPlanFocus);
+  const [routeContext, setRouteContext] = useState(getRouteContext);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [query, setQuery] = useState("");
@@ -757,7 +785,7 @@ export default function App() {
     initialize();
     const hashChange = () => {
       setRoute(getRoute());
-      setPlanFocus(getPlanFocus());
+      setRouteContext(getRouteContext());
       setMobileOpen(false);
       setQuery("");
       setSearchFocused(false);
@@ -821,10 +849,11 @@ export default function App() {
   }, [mobileOpen]);
   function navigate(id, focusId = null) {
     if (!navigation.some((item) => item.id === id)) id = "dashboard";
-    window.location.hash =
-      id === "plan" && focusId ? `${id}/${encodeURIComponent(focusId)}` : id;
+    window.location.hash = focusId
+      ? `${id}/${encodeURIComponent(focusId)}`
+      : id;
     setRoute(id);
-    setPlanFocus(id === "plan" ? focusId : null);
+    setRouteContext(focusId);
     setMobileOpen(false);
     setQuery("");
     setSearchFocused(false);
@@ -1102,25 +1131,49 @@ export default function App() {
           {route === "dashboard" && (
             <Dashboard data={data} onNavigate={navigate} />
           )}{" "}
-          {route === "schedule" && <Schedule data={data} />}{" "}
-          {route === "grades" && <Grades data={data} />}{" "}
+          {route === "schedule" && (
+            <Schedule data={data} viewContext={routeContext} />
+          )}{" "}
+          {route === "grades" && (
+            <Grades data={data} viewContext={routeContext} />
+          )}{" "}
           {route === "plan" && (
             <Planner
               data={data}
               refresh={refresh}
               notify={notify}
-              focusId={planFocus}
+              focusId={routeContext}
             />
           )}{" "}
           {route === "requests" && (
-            <Requests data={data} refresh={refresh} notify={notify} />
+            <Requests
+              data={data}
+              refresh={refresh}
+              notify={notify}
+              focusId={routeContext}
+            />
           )}{" "}
           {route === "notifications" && (
             <Notifications data={data} refresh={refresh} notify={notify} />
           )}{" "}
+          {route === "campus" && (
+            <Campus notify={notify} refresh={refresh} focusId={routeContext} />
+          )}
+          {route === "housing" && (
+            <Housing notify={notify} refresh={refresh} focusId={routeContext} />
+          )}
+          {route === "knowledge" && (
+            <Knowledge notify={notify} focusId={routeContext} />
+          )}
+          {route === "connections" && <Connections notify={notify} />}
           {route === "profile" && <Profile data={data} />}{" "}
           {route === "assistant" && (
-            <Assistant data={data} onNavigate={navigate} />
+            <AIAssistant
+              data={data}
+              onNavigate={navigate}
+              refresh={refresh}
+              notify={notify}
+            />
           )}
         </main>
       </div>

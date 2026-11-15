@@ -10,17 +10,21 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "vite build",
-    "start": "node server/index.mjs",
+    "start": "node --env-file-if-exists=.env server/index.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:e2e": "playwright test",
     "verify": "npm run build && npm test && npm run test:e2e",
-    "report": "node scripts/prepare-report.mjs"
+    "report": "node scripts/prepare-report.mjs",
+    "mcp:stdio": "node scripts/mcp-stdio.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
     "express": "^5.1.0",
     "lucide-react": "^0.468.0",
+    "pdf-parse": "2.4.5",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

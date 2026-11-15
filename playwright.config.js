@@ -17,6 +17,18 @@ export default defineConfig({
   },
   webServer: {
     command: `PORT=3010 DATABASE_PATH=${databasePath} node server/index.mjs`,
+    env: {
+      APP_ORIGIN: "",
+      COOKIE_SECURE: "false",
+      TRUST_PROXY: "0",
+      PAYMENTS_MODE: "demo",
+      ALLOW_REAL_CHANNEL_LINKING: "false",
+      YANDEX_API_KEY: "",
+      YANDEX_FOLDER_ID: "",
+      YANDEX_MODEL_URI: "",
+      TELEGRAM_BOT_TOKEN: "",
+      VK_GROUP_TOKEN: "",
+    },
     url: "http://127.0.0.1:3010/api/health",
     reuseExistingServer: false,
   },

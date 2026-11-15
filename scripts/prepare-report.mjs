@@ -25,8 +25,48 @@ const captures = [
     "Итерация 2: фильтры и личная готовность на 360 px",
   ],
   ["10-action-mobile.png", "Итерация 2: конкретный следующий шаг на телефоне"],
+  [
+    "11-audit-archive.png",
+    "После аудита: архив заявки с сохранённой историей и документом",
+  ],
+  [
+    "12-audit-assessment-mobile.png",
+    "После аудита: текущие баллы и аттестация отдельно, 360 px",
+  ],
+  [
+    "13-audit-navigator.png",
+    "После аудита: ответы про завтра, срок справки и выбранный предмет",
+  ],
+  [
+    "14-campus.png",
+    "Новая итерация: помещения, свободное время и сохранённая бронь",
+  ],
+  [
+    "15-housing.png",
+    "Общежитие: демооплата и образцы квитанций без списания денег",
+  ],
+  ["16-knowledge.png", "База знаний: поиск по документам с точными цитатами"],
+  [
+    "17-connections.png",
+    "Подключения: локальный журнал Telegram/VK и права MCP",
+  ],
+  [
+    "18-assistant-mobile.png",
+    "Помощник на 360 px: отдельное подтверждение заявки",
+  ],
 ];
 const md = await readFile("docs/PROCESS.md", "utf8");
+const prompts = await readFile("docs/PROMPTS.md", "utf8");
+const sourceBase =
+  "https://github.com/alexchist/mgimo-vibe-coding/blob/feat/orbita-student-portal/docs/";
+const reportBody = marked
+  .parse(
+    `${md}\n\n---\n\n# Приложение: сохранённые постановки задач\n\n${prompts.replace(/^# .+\n/, "")}`,
+  )
+  .replace(/href="([^"]+)"/g, (attribute, href) => {
+    if (/^(https?:|mailto:|#)/.test(href)) return attribute;
+    return `href="${new URL(href, sourceBase).href.replaceAll("&", "&amp;")}"`;
+  });
 let gallery = "";
 for (const [filename, caption] of captures) {
   try {
@@ -38,7 +78,7 @@ for (const [filename, caption] of captures) {
 }
 const html = `<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Орбита — процесс создания</title><style>
 @page{size:A4;margin:18mm 16mm}*{box-sizing:border-box}body{font:13px/1.6 Arial, sans-serif;color:#162333;max-width:900px;margin:auto}h1{font-size:30px;color:#147d73}h2{font-size:20px;color:#147d73;margin-top:28px;break-after:avoid}h3{font-size:14px;break-after:avoid}p,li{orphans:3;widows:3}a{color:#147d73;overflow-wrap:anywhere}table{width:100%;border-collapse:collapse;font-size:10px;table-layout:fixed;margin:14px 0}td,th{border:1px solid #dce4e4;padding:7px;vertical-align:top;overflow-wrap:anywhere}th{background:#eaf5f0;text-align:left}tr{break-inside:avoid}code{font:9px monospace;background:#eef3f3;overflow-wrap:anywhere}pre{white-space:pre-wrap;background:#eef3f3;padding:12px}.capture{break-before:page}.capture p{color:#526272}.capture img{display:block;max-width:100%;max-height:220mm;object-fit:contain;margin:10px auto}blockquote{border-left:3px solid #147d73;padding-left:12px;color:#526272}.cover-tag{letter-spacing:2px;font-size:10px;color:#147d73}
-</style></head><body><p class="cover-tag">ЦИФРОВОЙ ДЕКАНАТ БУДУЩЕГО · КОНКУРСНЫЙ КОНЦЕПТ</p>${marked.parse(md)}${gallery}</body></html>`;
+</style></head><body><p class="cover-tag">ЦИФРОВОЙ ДЕКАНАТ БУДУЩЕГО · КОНКУРСНЫЙ КОНЦЕПТ</p>${reportBody}${gallery}</body></html>`;
 await writeFile("docs/PROCESS.html", html);
 let printHtml = html;
 for (const [filename] of captures) {

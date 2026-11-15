@@ -45,6 +45,7 @@ export function Planner({ data, refresh, notify, focusId }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [focused, setFocused] = useState(focusId || null);
   const pending = useRef(false);
+  const idempotency = useRef(null);
   const newTaskInput = useRef(null);
   const filterBar = useRef(null);
   const lastFocused = useRef(null);
@@ -155,11 +156,21 @@ export function Planner({ data, refresh, notify, focusId }) {
     setBusy("create");
     setActionError("");
     try {
+      const body = { title: title.trim(), dueDate: dueDate || null };
+      const fingerprint = JSON.stringify(body);
+      if (idempotency.current?.fingerprint !== fingerprint)
+        idempotency.current = { fingerprint, key: crypto.randomUUID() };
       const result = await api("/plan", {
         method: "POST",
-        body: { title: title.trim(), dueDate: dueDate || null },
+        headers: { "Idempotency-Key": idempotency.current.key },
+        body,
       });
-      setItems((current) => [...current, result.item]);
+      idempotency.current = null;
+      setItems((current) =>
+        current.some((item) => item.id === result.item.id)
+          ? current
+          : [...current, result.item],
+      );
       setTitle("");
       setFilter("active");
       setFocused(result.item.id);

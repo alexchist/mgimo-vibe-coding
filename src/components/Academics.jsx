@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -157,12 +157,20 @@ function Lesson({ lesson, index }) {
   );
 }
 
-export function Schedule({ data }) {
+export function Schedule({ data, viewContext }) {
   const [view, setView] = useState("today");
   const [day, setDay] = useState(1);
   const [search, setSearch] = useState("");
   const [changedOnly, setChangedOnly] = useState(false);
   const [exported, setExported] = useState(false);
+  useEffect(() => {
+    setView(viewContext === "week" ? "week" : "today");
+    setDay(
+      /^day-[1-7]$/.test(viewContext || "") ? Number(viewContext.slice(-1)) : 1,
+    );
+    setSearch("");
+    setChangedOnly(false);
+  }, [viewContext]);
   const lessons = useMemo(
     () => [...(data.schedule || [])].sort(sortLessons),
     [data.schedule],
@@ -445,8 +453,9 @@ function GradeCalculator({ grades }) {
         Посмотрите, как результат экзамена мог бы повлиять на итог.
       </p>
       <label className="ac-field">
-        <span>Дисциплина</span>
+        <span id="ac-calculator-subject-label">Дисциплина</span>
         <select
+          aria-labelledby="ac-calculator-subject-label"
           value={subject.id}
           onChange={(event) => setSubjectId(event.target.value)}
         >
@@ -519,11 +528,26 @@ function GradeCalculator({ grades }) {
   );
 }
 
-export function Grades({ data }) {
+function assessmentLabel(grade) {
+  if (grade.assessmentStatus === "pending" || !grade.assessmentStatus)
+    return "Ещё не проходил";
+  if (grade.assessment === "Зачёт")
+    return grade.assessmentStatus === "passed" ? "Зачтено" : "Не зачтено";
+  return (
+    grade.assessmentResult ||
+    (grade.assessmentStatus === "failed" ? "Не сдан" : "Сдан")
+  );
+}
+
+export function Grades({ data, viewContext }) {
   const grades = data.grades || [];
   const [tab, setTab] = useState("subjects");
   const [filter, setFilter] = useState("all");
   const [expanded, setExpanded] = useState(null);
+  useEffect(() => {
+    setTab(viewContext === "session" ? "session" : "subjects");
+    setFilter("all");
+  }, [viewContext]);
   const credits = grades.reduce(
     (sum, grade) => sum + Number(grade.credits || 0),
     0,
@@ -657,7 +681,7 @@ export function Grades({ data }) {
                   </div>
                   <div className="ac-grade-table-head">
                     <span>Дисциплина</span>
-                    <span>Баллы</span>
+                    <span>Текущий балл · аттестация</span>
                   </div>
                   {!visibleGrades.length ? (
                     <div className="empty-state ac-empty">
@@ -695,7 +719,7 @@ export function Grades({ data }) {
                             >
                               {grade.score}
                             </strong>
-                            <span>{grade.grade}</span>
+                            <span>{assessmentLabel(grade)}</span>
                           </span>
                           <ChevronDown
                             size={17}
@@ -713,6 +737,12 @@ export function Grades({ data }) {
                             <p className="ac-teacher">
                               <UserRound size={15} aria-hidden="true" />
                               {grade.teacher}
+                            </p>
+                            <p>
+                              Форма контроля: {grade.assessment}. Результат
+                              аттестации: {assessmentLabel(grade)}. Текущий балл
+                              складывается из учебных работ и не означает сдачу
+                              аттестации.
                             </p>
                             {(grade.components || []).map(
                               (component, index) => (
@@ -801,6 +831,7 @@ export function Grades({ data }) {
                         <span className="ac-session-score">
                           {grade.score}
                           <small>текущий балл</small>
+                          <small>{assessmentLabel(grade)}</small>
                         </span>
                       </article>
                     ))}
@@ -813,7 +844,9 @@ export function Grades({ data }) {
                 </>
               )}
             </section>
-            <GradeCalculator grades={grades} />
+            <GradeCalculator
+              grades={grades.filter((grade) => grade.assessment === "Экзамен")}
+            />
           </div>
         </>
       )}

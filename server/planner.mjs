@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 const FIRST_DATE = "2026-11-16";
 const LAST_DATE = "2026-11-22";
@@ -82,6 +82,32 @@ export function installPlanner(app, db, authenticate) {
         error:
           "Выберите дату демо-недели 16–22 ноября 2026 или оставьте срок пустым.",
       });
+    const key = req.get("idempotency-key");
+    if (key && !/^[a-zA-Z0-9_-]{8,100}$/.test(key))
+      return res
+        .status(400)
+        .json({ error: "Некорректный идентификатор отправки." });
+    const bodyHash = createHash("sha256")
+      .update(JSON.stringify({ title: title.trim(), dueDate }))
+      .digest("hex");
+    if (key) {
+      const previous = db
+        .prepare("SELECT * FROM planner_keys WHERE user_id = ? AND key = ?")
+        .get(req.user.id, key);
+      if (previous) {
+        if (previous.body_hash !== bodyHash)
+          return res.status(409).json({
+            error: "Этот идентификатор уже использован для другого дела.",
+          });
+        const item = getRecord(req.user.id, previous.task_id, "planner_task");
+        if (!item)
+          return res.status(410).json({
+            error:
+              "Это дело уже было создано и затем удалено. Обновите список.",
+          });
+        return res.json({ item });
+      }
+    }
     const count = db
       .prepare(
         "SELECT COUNT(*) AS n FROM records WHERE user_id = ? AND kind = 'planner_task'",
@@ -100,9 +126,20 @@ export function installPlanner(app, db, authenticate) {
       dueDate,
       completed: false,
     };
-    db.prepare(
-      "INSERT INTO records (id, user_id, kind, payload_json) VALUES (?, ?, ?, ?)",
-    ).run(item.id, req.user.id, "planner_task", JSON.stringify(item));
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.prepare(
+        "INSERT INTO records (id, user_id, kind, payload_json) VALUES (?, ?, ?, ?)",
+      ).run(item.id, req.user.id, "planner_task", JSON.stringify(item));
+      if (key)
+        db.prepare(
+          "INSERT INTO planner_keys (user_id, key, body_hash, task_id) VALUES (?, ?, ?, ?)",
+        ).run(req.user.id, key, bodyHash, item.id);
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
     res.status(201).json({ item });
   });
   app.patch("/api/plan/:id", authenticate, (req, res) => {

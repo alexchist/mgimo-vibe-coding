@@ -1,0 +1,816 @@
+.campus-page {
+  min-width: 0;
+  color: #21332e;
+}
+.campus-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.campus-heading h1 {
+  font-size: 32px;
+  letter-spacing: -1px;
+  line-height: 1.2;
+  margin: 6px 0 10px;
+}
+.campus-heading > div > p:last-child {
+  color: #586960;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.campus-eyebrow {
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.25px;
+  line-height: 1.6;
+  color: #596c60;
+}
+.campus-week {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #dce6de;
+  border-radius: 10px;
+  font-size: 12px;
+  background: white;
+  white-space: nowrap;
+  color: #52685a;
+}
+.campus-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid #dbe8df;
+  background: #edf5ef;
+  border-radius: 12px;
+  padding: 14px 17px;
+  margin-bottom: 25px;
+  color: #3b5e49;
+  font-size: 12px;
+  line-height: 1.75;
+}
+.campus-notice svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.campus-notice p {
+  margin: 0;
+}
+.campus-muted {
+  color: #647167;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.campus-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.campus-page h2 {
+  font-size: 20px;
+  line-height: 1.4;
+  letter-spacing: -0.4px;
+}
+.campus-spaces > .campus-muted {
+  margin-top: 5px;
+}
+.campus-room-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+.campus-room {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  width: 100%;
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #e0e7df;
+  border-radius: 14px;
+  padding: 22px 18px;
+  text-align: left;
+  cursor: pointer;
+  color: #24372d;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.campus-room:hover {
+  border-color: #839e8b;
+}
+.campus-room.selected {
+  border: 2px solid #57775e;
+  padding: 21px 17px;
+  box-shadow: 0 4px 16px #1b49300a;
+}
+.campus-room-icon {
+  flex: none;
+  width: 47px;
+  height: 47px;
+  background: #e5eee5;
+  color: #48694e;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+}
+.campus-room.campus-room-tone-peach .campus-room-icon {
+  background: #f8ebde;
+  color: #906b45;
+}
+.campus-room.campus-room-tone-lilac .campus-room-icon {
+  background: #eeebf5;
+  color: #77698c;
+}
+.campus-room-content {
+  display: grid;
+  min-width: 0;
+  gap: 9px;
+  flex: 1;
+}
+.campus-room-select {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.campus-room-select::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 14px;
+}
+.campus-room:has(.campus-room-select:focus-visible) {
+  outline: 3px solid #57796a;
+  outline-offset: 3px;
+}
+.campus-room-select > strong {
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: -0.25px;
+}
+.campus-room-place {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 11px;
+  color: #627367;
+}
+.campus-room-place svg {
+  flex: none;
+}
+.campus-room-description {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #617164;
+}
+.campus-amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 3px;
+}
+.campus-amenities > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  padding: 5px 7px;
+  background: #f1f5ef;
+  border-radius: 5px;
+  color: #53644f;
+}
+.campus-room-check {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d5e0d6;
+  border-radius: 50%;
+  margin-top: 2px;
+}
+.campus-room.selected .campus-room-check {
+  color: white;
+  border-color: #55785d;
+  background: #55785d;
+}
+.campus-page .campus-booking-form {
+  padding: 25px;
+  display: grid;
+  gap: 19px;
+}
+.campus-booking-form > h2 {
+  margin-top: -14px;
+}
+.campus-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.campus-booking-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 0;
+}
+.campus-booking-form input,
+.campus-booking-form select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #dce4db;
+  background: white;
+  border-radius: 8px;
+  padding: 11px 10px;
+  font: inherit;
+  color: #334b3c;
+  height: 43px;
+}
+.campus-booking-form input::placeholder {
+  color: #7b887d;
+  font-weight: 400;
+}
+.campus-slot-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.campus-slot-fieldset legend {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.campus-slot-help {
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+.campus-slots {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.campus-slots button {
+  border: 1px solid #d6e5d6;
+  border-radius: 7px;
+  height: 37px;
+  color: #45634c;
+  background: #f4f9f2;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.campus-slots button:disabled {
+  color: #8a938d;
+  border-color: #ecf0eb;
+  background: #f4f5f2;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+.campus-slots button.selected {
+  color: white;
+  background: #506f57;
+  border-color: #506f57;
+}
+.campus-selection {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: #41664a;
+  background: #f1f6ec;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.campus-page .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  font-size: 12px;
+  text-decoration: none;
+}
+.campus-primary {
+  width: 100%;
+}
+.campus-form-footnote {
+  text-align: center;
+  color: #5e6b60;
+  font-size: 10px;
+  line-height: 1.7;
+  margin-top: -7px;
+}
+.campus-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  border: 1px solid #f0d0bf;
+  background: #fff4ed;
+  color: #8f4427;
+  border-radius: 9px;
+  padding: 11px 13px;
+  font-size: 12px;
+  line-height: 1.65;
+  margin-bottom: 12px;
+}
+.campus-loading {
+  padding: 24px 0;
+  color: #667767;
+  font-size: 13px;
+}
+.campus-page .campus-history,
+.campus-page .housing-history,
+.campus-page .housing-invoices {
+  padding: 24px;
+  margin-top: 24px;
+}
+.campus-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.campus-section-heading h2 {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.campus-count {
+  display: inline-grid;
+  place-items: center;
+  background: #edf2e8;
+  color: #5b775b;
+  border-radius: 6px;
+  min-width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+.campus-filters {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 9px;
+  background: #f0f3ec;
+}
+.campus-filters button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 11px;
+  background: none;
+  color: #53654f;
+  cursor: pointer;
+}
+.campus-filters button[aria-pressed="true"] {
+  background: white;
+  color: #34583e;
+  box-shadow: 0 1px 4px #243a3010;
+}
+.campus-empty {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 9px;
+  padding: 35px 12px;
+  text-align: center;
+  color: #5e705a;
+  font-size: 12px;
+}
+.campus-empty strong {
+  color: #4e634b;
+  font-size: 14px;
+}
+.campus-booking {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 19px 0;
+  border-top: 1px solid #edf0e9;
+}
+.campus-booking-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 57px;
+  height: 63px;
+  border-radius: 9px;
+  background: #f1f4e9;
+}
+.campus-booking-date strong {
+  font-size: 23px;
+  line-height: 1.1;
+  font-weight: 500;
+}
+.campus-booking-date span {
+  font-size: 10px;
+  margin-top: 5px;
+  color: #6e7b65;
+}
+.campus-booking-info {
+  flex: 1;
+  min-width: 0;
+}
+.campus-booking-info h3 {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.campus-booking-info p {
+  color: #64725e;
+  font-size: 12px;
+  margin: 5px 0 7px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.campus-status {
+  display: inline-block;
+  padding: 4px 7px;
+  color: #677368;
+  background: #f0f2ed;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.campus-status.success {
+  color: #3f6a4a;
+  background: #edf4e8;
+}
+.campus-status.pending {
+  color: #856833;
+  background: #fbf1da;
+}
+.campus-cancel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  max-width: 230px;
+}
+.campus-cancel p {
+  width: 100%;
+  font-size: 11px;
+  color: #7b5f45;
+}
+.campus-text-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 0;
+  border: none;
+  background: none;
+  color: #58715c;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  line-height: 1.5;
+}
+.campus-page button:focus-visible,
+.campus-page a:focus-visible,
+.campus-page input:focus-visible,
+.campus-page select:focus-visible {
+  outline: 3px solid #57796a;
+  outline-offset: 3px;
+}
+.campus-page .focused {
+  outline: 2px solid #88a57c;
+  outline-offset: 6px;
+  border-radius: 8px;
+}
+.campus-page button:disabled {
+  cursor: not-allowed;
+}
+.housing-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 22px;
+}
+.campus-page .housing-home {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 26px;
+  background: #f3f6ec;
+  border-color: #e2e8d7;
+}
+.housing-home-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 68px;
+  height: 68px;
+  border-radius: 18px;
+  background: #e4ebd7;
+  color: #5d7751;
+}
+.housing-home h2 {
+  margin: 5px 0 9px;
+}
+.housing-home p:not(.campus-eyebrow) {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #59694e;
+}
+.housing-home div > span {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #56664e;
+}
+.campus-page .housing-balance {
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  background: #fcf3e9;
+  border-color: #eddfca;
+}
+.housing-balance > strong {
+  font-weight: 500;
+  font-size: 34px;
+  letter-spacing: -1px;
+  color: #655138;
+}
+.housing-balance > span {
+  font-size: 11px;
+  color: #715f48;
+}
+.housing-invoice {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #edf0e8;
+  padding: 24px 0;
+}
+.housing-invoice:last-child {
+  padding-bottom: 0;
+}
+.housing-invoice-title {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  min-width: 0;
+}
+.housing-invoice-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 53px;
+  flex: none;
+  background: #f4f6ef;
+  border-radius: 10px;
+  color: #738167;
+}
+.housing-invoice-title h3 {
+  text-transform: capitalize;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.housing-invoice-title p {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 5px 0 9px;
+  color: #5f7056;
+}
+.housing-invoice-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+  max-width: 310px;
+}
+.housing-invoice-actions > strong {
+  font-size: 22px;
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: -0.5px;
+}
+.housing-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 9px;
+  background: #f6f7f0;
+}
+.housing-confirm p {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #5d7058;
+  width: 100%;
+}
+.housing-payment-list > article {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid #edf0e8;
+  padding: 17px 0;
+}
+.housing-payment-list > article:last-child {
+  padding-bottom: 0;
+}
+.housing-payment-list > article > div {
+  flex: 1;
+  min-width: 0;
+}
+.housing-payment-list strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.housing-payment-list p {
+  margin-top: 5px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #626f5a;
+  overflow-wrap: anywhere;
+}
+.housing-payment-list > article > span:last-child {
+  font-size: 14px;
+  white-space: nowrap;
+}
+.housing-payment-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d3b77c;
+  flex: none;
+}
+.housing-payment-dot.success {
+  background: #8da47a;
+}
+@media (max-width: 1080px) {
+  .campus-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .campus-room-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .campus-room {
+    padding: 17px 13px;
+    flex-wrap: wrap;
+    position: relative;
+    gap: 12px;
+  }
+  .campus-room.selected {
+    padding: 16px 12px;
+  }
+  .campus-room-content {
+    flex-basis: 100%;
+  }
+  .campus-room-check {
+    position: absolute;
+    top: 17px;
+    right: 13px;
+  }
+  .campus-slots {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .campus-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 13px;
+  }
+  .housing-home-icon {
+    width: 52px;
+    height: 52px;
+  }
+  .campus-page .housing-home {
+    gap: 14px;
+    padding: 21px;
+  }
+  .housing-balance > strong {
+    font-size: 28px;
+  }
+}
+@media (max-width: 680px) {
+  .campus-heading h1 {
+    font-size: 28px;
+  }
+  .campus-heading > div > p:last-child {
+    font-size: 12px;
+  }
+  .campus-notice {
+    font-size: 11px;
+    padding: 12px;
+  }
+  .campus-room-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .campus-room {
+    flex-wrap: nowrap;
+    padding: 18px 13px;
+  }
+  .campus-room.selected {
+    padding: 17px 12px;
+  }
+  .campus-room-content {
+    flex-basis: auto;
+    padding-right: 18px;
+  }
+  .campus-room-icon {
+    width: 39px;
+    height: 42px;
+  }
+  .campus-room-select > strong {
+    font-size: 14px;
+  }
+  .campus-page .campus-booking-form {
+    padding: 19px 16px;
+  }
+  .campus-form-row {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 9px;
+  }
+  .campus-slots {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .campus-page .campus-history,
+  .campus-page .housing-history,
+  .campus-page .housing-invoices {
+    padding: 20px 16px;
+  }
+  .campus-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .campus-booking {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .campus-booking-info {
+    flex-basis: calc(100% - 70px);
+  }
+  .campus-cancel {
+    margin-left: 69px;
+    max-width: none;
+  }
+  .housing-overview {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .campus-page .housing-home {
+    align-items: flex-start;
+    padding: 21px 17px;
+  }
+  .housing-home h2 {
+    font-size: 18px;
+  }
+  .campus-page .housing-balance {
+    padding: 21px;
+  }
+  .housing-invoice {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .housing-invoice-title {
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .housing-invoice-title h3 {
+    font-size: 15px;
+  }
+  .housing-invoice-actions {
+    align-items: flex-start;
+    max-width: none;
+    margin-left: 60px;
+  }
+  .housing-confirm {
+    margin-left: -60px;
+  }
+  .housing-payment-list > article {
+    gap: 8px;
+  }
+  .housing-payment-list > article > span:last-child {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .campus-room {
+    transition: none;
+  }
+}

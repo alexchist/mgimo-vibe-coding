@@ -8,19 +8,38 @@ export async function api(path, options = {}) {
     )
       ? {}
       : body;
-  const response = await fetch(`/api${path}`, {
-    ...rest,
-    credentials: "same-origin",
-    headers: {
+  let response;
+  try {
+    response = await fetch(`/api${path}`, {
+      ...rest,
+      credentials: "same-origin",
+      headers: {
+        ...(payloadBody !== undefined
+          ? { "Content-Type": "application/json" }
+          : {}),
+        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+        ...headers,
+      },
       ...(payloadBody !== undefined
-        ? { "Content-Type": "application/json" }
+        ? { body: JSON.stringify(payloadBody) }
         : {}),
-      ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
-      ...headers,
-    },
-    ...(payloadBody !== undefined ? { body: JSON.stringify(payloadBody) } : {}),
-  });
-  const payload = await response.json().catch(() => ({}));
+    });
+  } catch (cause) {
+    if (cause.name === "AbortError") throw cause;
+    throw new Error(
+      "Не удалось связаться с сервером. Проверьте соединение и попробуйте ещё раз.",
+      { cause },
+    );
+  }
+  let payload;
+  try {
+    payload = await response.json();
+  } catch (cause) {
+    throw new Error(
+      "Не удалось прочитать ответ сервера. Повторите действие, когда соединение восстановится.",
+      { cause },
+    );
+  }
   if (!response.ok) {
     const error = new Error(
       payload.error ||
