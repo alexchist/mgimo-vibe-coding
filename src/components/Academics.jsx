@@ -468,11 +468,19 @@ function ScoreRing({ score }) {
 function GradeCalculator({ grades }) {
   const [subjectId, setSubjectId] = useState(grades[0]?.id || "");
   const [examScore, setExamScore] = useState(85);
-  const [goal, setGoal] = useState(85);
+  const [goal, setGoal] = useState("85");
   const subject = grades.find((grade) => grade.id === subjectId) || grades[0];
   if (!subject) return null;
-  const result = Math.round(subject.score * 0.6 + examScore * 0.4);
-  const needed = Math.max(0, Math.ceil((goal - subject.score * 0.6) / 0.4));
+  const result = (subject.score * 6 + examScore * 4) / 10;
+  const goalValue = Number(goal);
+  const validGoal =
+    goal !== "" &&
+    Number.isInteger(goalValue) &&
+    goalValue >= 0 &&
+    goalValue <= 100;
+  const needed = validGoal
+    ? Math.max(0, Math.ceil((goalValue * 10 - subject.score * 6) / 4))
+    : null;
   return (
     <section
       className="card ac-calculator"
@@ -526,7 +534,7 @@ function GradeCalculator({ grades }) {
         <div>
           <span>Прогноз итога</span>
           <strong>
-            {result}
+            {result.toLocaleString("ru-RU", { maximumFractionDigits: 1 })}
             <small> / 100</small>
           </strong>
         </div>
@@ -537,18 +545,24 @@ function GradeCalculator({ grades }) {
       </div>
       <label className="ac-goal-field">
         <span>Моя цель</span>
-        <select
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="1"
+          inputMode="numeric"
+          aria-describedby="ac-goal-hint"
+          aria-invalid={goal !== "" && !validGoal}
           value={goal}
-          onChange={(event) => setGoal(Number(event.target.value))}
-        >
-          <option value={60}>60 баллов</option>
-          <option value={75}>75 баллов</option>
-          <option value={85}>85 баллов</option>
-          <option value={90}>90 баллов</option>
-        </select>
+          onChange={(event) => setGoal(event.target.value)}
+        />
       </label>
-      <p className="ac-goal-hint" aria-live="polite">
-        {needed > 100 ? (
+      <p id="ac-goal-hint" className="ac-goal-hint" aria-live="polite">
+        {goal === "" ? (
+          "Введите желаемый итог: целое число от 0 до 100."
+        ) : !validGoal ? (
+          "Цель должна быть целым числом от 0 до 100."
+        ) : needed > 100 ? (
           "В этой модели одной оценки за экзамен недостаточно. Нужно улучшить семестровый результат."
         ) : needed === 0 ? (
           "В этой модели цель уже достигнута за счёт семестрового результата."

@@ -1,0 +1,95 @@
+[WebServer] (node:31984) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:31993) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/usability-navigation.spec.js:15:1 › section search reopens for another query after selecting a result (6.7s)
+(node:32163) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/e2e/usability-navigation.spec.js:60:1 › section search matches combined Russian terms regardless of order (6.2s)
+
+
+  1) tests/e2e/usability-navigation.spec.js:15:1 › section search reopens for another query after selecting a result 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Успеваемость', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Успеваемость', exact: true }) with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Успеваемость', exact: true })
+
+
+      34 |     exact: true,
+      35 |   });
+    > 36 |   await expect(grades).toBeVisible();
+         |                        ^
+      37 |   await page.screenshot({ path: testInfo.outputPath("second-search.png") });
+      38 |   await grades.click();
+      39 |   await expect(
+        at /workspace/mgimo-vibe-coding/tests/e2e/usability-navigation.spec.js:36:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/usability-navigation-secti-cee47-ry-after-selecting-a-result/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/usability-navigation-secti-cee47-ry-after-selecting-a-result/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/usability-navigation-secti-cee47-ry-after-selecting-a-result/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/usability-navigation-secti-cee47-ry-after-selecting-a-result/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests/e2e/usability-navigation.spec.js:60:1 › section search matches combined Russian terms regardless of order 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Общежитие', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Общежитие', exact: true }) with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Общежитие', exact: true })
+
+
+      71 |   });
+      72 |   await search.fill("  ОПЛАТА   ОБЩЕЖИТИЯ  ");
+    > 73 |   await expect(housing).toBeVisible();
+         |                         ^
+      74 |   await search.fill("общежития, оплата");
+      75 |   await expect(housing).toBeVisible();
+      76 |   await search.fill("оплата общежития фиолетовая");
+        at /workspace/mgimo-vibe-coding/tests/e2e/usability-navigation.spec.js:73:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/usability-navigation-secti-cf9bb-n-terms-regardless-of-order/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/usability-navigation-secti-cf9bb-n-terms-regardless-of-order/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/usability-navigation-secti-cf9bb-n-terms-regardless-of-order/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/usability-navigation-secti-cf9bb-n-terms-regardless-of-order/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests/e2e/usability-navigation.spec.js:15:1 › section search reopens for another query after selecting a result 
+    tests/e2e/usability-navigation.spec.js:60:1 › section search matches combined Russian terms regardless of order 
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

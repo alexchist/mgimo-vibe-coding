@@ -1,0 +1,56 @@
+[WebServer] (node:31723) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:31731) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/usability.spec.js:3:1 › a custom goal and fractional forecast stay consistent without changing grades (6.6s)
+
+
+  1) tests/e2e/usability.spec.js:3:1 › a custom goal and fractional forecast stay consistent without changing grades 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.ac-calculator-result')
+    Expected substring: "79,6"
+    Received string:    "Прогноз итога80 / 10066 × 60%+ 100 × 40%"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" locator('.ac-calculator-result') with timeout 5000ms
+      - waiting for locator('.ac-calculator-result')
+        14 × locator resolved to <div aria-live="polite" class="ac-calculator-result">…</div>
+           - unexpected value "Прогноз итога80 / 10066 × 60%+ 100 × 40%"
+
+
+      12 |   await page.getByRole("combobox", { name: "Дисциплина", exact: true }).selectOption({ label: "Экономическая теория" });
+      13 |   await page.getByRole("slider").press("End");
+    > 14 |   await expect(page.locator(".ac-calculator-result")).toContainText("79,6");
+         |                                                       ^
+      15 |   const goal = page.getByRole("spinbutton", { name: "Моя цель", exact: true });
+      16 |   await goal.fill("95");
+      17 |   await expect(page.locator(".ac-goal-hint")).toContainText("недостаточно");
+        at /workspace/mgimo-vibe-coding/tests/e2e/usability.spec.js:14:55
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/usability-a-custom-goal-an-acc08-ent-without-changing-grades/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/usability-a-custom-goal-an-acc08-ent-without-changing-grades/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/usability-a-custom-goal-an-acc08-ent-without-changing-grades/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/usability-a-custom-goal-an-acc08-ent-without-changing-grades/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/e2e/usability.spec.js:3:1 › a custom goal and fractional forecast stay consistent without changing grades 
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

@@ -1,5 +1,49 @@
 import { test, expect } from "@playwright/test";
 
+test("a custom goal and fractional forecast stay consistent without changing grades", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 900 });
+  await page.goto("/");
+  await page.getByLabel("Логин", { exact: true }).fill("mark@demo.orbita");
+  await page.getByLabel("Пароль", { exact: true }).fill("Orbita2026!");
+  await page
+    .getByRole("button", { name: "Войти в кабинет", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "С возвращением, Марк." }),
+  ).toBeVisible();
+  const before = (await (await page.request.get("/api/bootstrap")).json())
+    .grades;
+  await page.goto("/#grades");
+  await page
+    .getByRole("combobox", { name: "Дисциплина", exact: true })
+    .selectOption({ label: "Экономическая теория" });
+  await page.getByRole("slider").press("End");
+  await expect(page.locator(".ac-calculator-result")).toContainText("79,6");
+  const goal = page.getByRole("spinbutton", { name: "Моя цель", exact: true });
+  await goal.fill("95");
+  await expect(page.locator(".ac-goal-hint")).toContainText("недостаточно");
+  await goal.fill("80");
+  await expect(page.locator(".ac-goal-hint")).toContainText("недостаточно");
+  await goal.fill("");
+  await expect(page.locator(".ac-goal-hint")).toContainText(
+    "Введите желаемый итог",
+  );
+  for (const value of ["101", "1.5"]) {
+    await goal.fill(value);
+    await expect(page.locator(".ac-goal-hint")).not.toContainText(
+      "баллов за экзамен",
+    );
+    await expect(goal).toHaveAttribute("aria-invalid", "true");
+  }
+  await goal.fill("75");
+  await expect(page.locator(".ac-goal-hint")).toContainText("89 баллов");
+  expect(
+    (await (await page.request.get("/api/bootstrap")).json()).grades,
+  ).toEqual(before);
+});
+
 test("a student can discard one preparation and use the form without submitting either draft", async ({
   page,
 }, testInfo) => {
@@ -11,7 +55,9 @@ test("a student can discard one preparation and use the form without submitting 
       exact: true,
     })
     .click();
-  await expect(page.getByRole("heading", { name: "С возвращением, Алиса." })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "С возвращением, Алиса." }),
+  ).toBeVisible();
   const before = (await (await page.request.get("/api/bootstrap")).json())
     .requests.length;
   await page.goto("/#assistant");

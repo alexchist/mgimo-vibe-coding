@@ -51,24 +51,28 @@ const navigation = [
     title: "Расписание",
     icon: CalendarDays,
     hint: "Пары, аудитории и преподаватели",
+    searchTerms: "расписания занятия занятий перенос пары",
   },
   {
     id: "grades",
     title: "Успеваемость",
     icon: GraduationCap,
     hint: "Оценки, зачёты и сессия",
+    searchTerms: "оценок экзамен экзамены сессии сессию",
   },
   {
     id: "requests",
     title: "Заявки и справки",
     icon: FileText,
     hint: "Заказать документ и проверить статус",
+    searchTerms: "справка справку справок заявка заявку документы выписка",
   },
   {
     id: "plan",
     title: "Мой план",
     icon: ListTodo,
     hint: "Личные дела, подготовка и учебные сроки",
+    searchTerms: "задача задачи задачу дедлайн дедлайны",
   },
   {
     id: "notifications",
@@ -81,24 +85,28 @@ const navigation = [
     title: "Кампус",
     icon: Building2,
     hint: "Общественные помещения и бронирования",
+    searchTerms: "комната комнаты комнату бронь брони забронировать",
   },
   {
     id: "housing",
     title: "Общежитие",
     icon: Wallet,
     hint: "Начисления, оплата и квитанции",
+    searchTerms: "общежития общежитию проживание оплатить оплаты квитанция",
   },
   {
     id: "knowledge",
     title: "База знаний",
     icon: LibraryBig,
     hint: "Поиск в приказах, правилах и своих документах",
+    searchTerms: "приказы правила документы документов",
   },
   {
     id: "connections",
     title: "Подключения",
     icon: Plug,
     hint: "Уведомления Telegram, VK и MCP для своего ИИ",
+    searchTerms: "телеграм вк подключение",
   },
   {
     id: "assistant",
@@ -113,6 +121,8 @@ const navigation = [
     hint: "Ваши учебные данные",
   },
 ];
+const searchWords = (value) =>
+  value.toLocaleLowerCase("ru-RU").replaceAll("ё", "е").match(/[\p{L}\p{N}]+/gu) || [];
 const getRoute = () => {
   const route = window.location.hash.slice(1).split("/")[0];
   return navigation.some((n) => n.id === route) ? route : "dashboard";
@@ -823,9 +833,11 @@ export default function App() {
     return <Login onLogin={() => refresh(++authGeneration.current)} />;
   const unread = data.notifications.filter((item) => !item.read).length;
   const activeItem = navigation.find((item) => item.id === route);
-  const searchResults = navigation.filter((item) =>
-    `${item.title} ${item.hint}`.toLowerCase().includes(query.toLowerCase()),
-  );
+  const queryWords = searchWords(query);
+  const searchResults = navigation.filter((item) => {
+    const words = searchWords(`${item.title} ${item.hint} ${item.searchTerms || ""}`);
+    return queryWords.every((term) => words.some((word) => word.startsWith(term)));
+  });
   return (
     <div className="app-shell">
       <a
@@ -988,7 +1000,11 @@ export default function App() {
                 placeholder="Найти в кабинете"
                 value={query}
                 onFocus={() => setSearchFocused(true)}
-                onChange={(e) => setQuery(e.target.value)}
+                onClick={() => setSearchFocused(true)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setSearchFocused(true);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") setSearchFocused(false);
                   if (e.key === "Enter" && searchResults[0])
@@ -1013,6 +1029,7 @@ export default function App() {
                   ) : (
                     <p>Ничего не нашли. Попробуйте «справки» или «оценки».</p>
                   )}
+                  {searchResults.length > 0 && <p>Enter откроет первый раздел.</p>}
                 </div>
               )}
             </div>
