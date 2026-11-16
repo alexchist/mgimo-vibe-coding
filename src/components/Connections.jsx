@@ -532,7 +532,7 @@ export function Connections({ notify }) {
                 <Workflow size={23} aria-hidden="true" />
               </span>
               <div>
-                <h2 id="connections-mcp-title">Орбита в вашей нейросети</h2>
+                <h2 id="connections-mcp-title">Курсом в вашей нейросети</h2>
                 <p>
                   MCP даёт вашему помощнику доступ к расписанию, документам и
                   действиям с подтверждением.

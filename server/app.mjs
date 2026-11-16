@@ -492,12 +492,12 @@ function renderDocument(user, request) {
   const e = htmlEscape;
   return `<!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Демонстрационный документ · Орбита</title><style>
+<title>Демонстрационный документ · Курсом</title><style>
 body{font:16px/1.7 system-ui,sans-serif;color:#162333;margin:0;background:#f6f7f9}main{max-width:720px;margin:40px auto;background:white;padding:48px;border:2px dashed #147d73}h1{font-size:28px}strong{color:#147d73}.watermark{border:2px solid #b77947;color:#925325;padding:16px;font-weight:700;letter-spacing:.05em}.small{font-size:13px;color:#526272}dl{display:grid;grid-template-columns:150px 1fr;gap:8px}dd{margin:0}@media(max-width:600px){main{margin:12px;padding:24px}dl{display:block}dt{margin-top:12px}}@media print{body{background:white}main{margin:0;border:2px dashed #147d73}}
-</style></head><body><main><strong>ОРБИТА · КОНЦЕПТ</strong><p class="watermark">ОБРАЗЕЦ · ВЫМЫШЛЕННЫЕ ДАННЫЕ · НЕ ЯВЛЯЕТСЯ ДОКУМЕНТОМ</p>
+</style></head><body><main><strong>КУРСОМ · КОНЦЕПТ</strong><p class="watermark">ОБРАЗЕЦ · ВЫМЫШЛЕННЫЕ ДАННЫЕ · НЕ ЯВЛЯЕТСЯ ДОКУМЕНТОМ</p>
 <h1>${e(TYPES[request.type])}</h1><p>Демонстрационный макет по заявке ${e(request.number)}.</p>
 <dl><dt>Студент</dt><dd>${e(user.fullName)}</dd><dt>Факультет</dt><dd>${e(user.faculty)}</dd><dt>Направление</dt><dd>${e(user.program)}</dd><dt>Курс и группа</dt><dd>${e(user.year)} курс · ${e(user.group)}</dd><dt>Цель</dt><dd>${e(request.purpose)}</dd><dt>Комментарий</dt><dd>${e(request.comment || "Не указан")}</dd></dl>
 <p>Этот файл показывает сценарий получения документа в конкурсном прототипе. Данные вымышлены; сведения об обучении, стипендии, успеваемости или отпуске ничем не подтверждаются.</p>
-<p class="small">Орбита — независимый концепт, не официальный сервис МГИМО или другого вуза. Печатей и подписей нет. Макет не имеет юридической силы и не предназначен для предоставления в организации.</p>
+<p class="small">Курсом — независимый концепт, не официальный сервис МГИМО или другого вуза. Печатей и подписей нет. Макет не имеет юридической силы и не предназначен для предоставления в организации.</p>
 </main></body></html>`;
 }

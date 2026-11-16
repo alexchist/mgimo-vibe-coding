@@ -239,45 +239,6 @@ textarea::placeholder {
 .brand-dot {
   color: #83a68a;
 }
-.orbit-mark {
-  display: inline-block;
-  width: 34px;
-  height: 34px;
-  position: relative;
-  flex-shrink: 0;
-}
-.orbit-mark > span {
-  position: absolute;
-  inset: 6px;
-  border: 3px solid #30695c;
-  border-radius: 50%;
-}
-.orbit-mark:before {
-  content: "";
-  position: absolute;
-  inset: 0 9px;
-  border: 1.6px solid #30695c;
-  transform: rotate(43deg);
-  border-radius: 50%;
-}
-.orbit-mark:after {
-  content: "";
-  position: absolute;
-  inset: 9px -2px;
-  border: 1.6px solid #30695c;
-  transform: rotate(43deg);
-  border-radius: 50%;
-}
-.orbit-mark > i {
-  position: absolute;
-  right: 0;
-  top: 2px;
-  width: 6px;
-  height: 6px;
-  background: #a4bb8d;
-  border: 1px solid white;
-  border-radius: 50%;
-}
 .brand-link {
   align-self: flex-start;
 }
@@ -723,78 +684,6 @@ textarea::placeholder {
 }
 .welcome-button:hover {
   background: #24533f;
-}
-.orbit-art {
-  position: absolute;
-  width: 335px;
-  height: 260px;
-  right: 18px;
-  top: -9px;
-  pointer-events: none;
-}
-.orbit-art > svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-.orbit-art-core {
-  position: absolute;
-  width: 90px;
-  height: 90px;
-  left: 133px;
-  top: 91px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #c8dace;
-  background: linear-gradient(145deg, #f3f7f0, #dce9dc);
-  border-radius: 24px;
-  transform: rotate(-12deg);
-  color: #70917b;
-  box-shadow: 8px 12px 22px #4a78541a;
-}
-.orbit-art-core > svg {
-  transform: rotate(12deg);
-}
-.orbit-art-book {
-  position: absolute;
-  width: 48px;
-  height: 52px;
-  left: 53px;
-  top: 105px;
-  background: #fff9ef;
-  border: 1px solid #e6dcc8;
-  box-shadow: 4px 5px 9px #506d4210;
-  border-radius: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: rotate(-15deg);
-  color: #b29b76;
-}
-.orbit-art-check {
-  position: absolute;
-  left: 264px;
-  top: 124px;
-  width: 41px;
-  height: 41px;
-  border: 1px solid #b7d4bd;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: #6a956f;
-  background: #d3e7cf;
-  box-shadow: 3px 5px 7px #406f4212;
-}
-.orbit-art-caption {
-  position: absolute;
-  bottom: 15px;
-  left: 97px;
-  font-size: 8px;
-  color: #8aa38b;
-  letter-spacing: 0.7px;
 }
 .dashboard-stats {
   display: grid;
@@ -1663,10 +1552,6 @@ textarea::placeholder {
   .welcome-button {
     font-size: 11px;
   }
-  .orbit-art {
-    right: 60px;
-    top: 0;
-  }
   .dashboard-heading h1 {
     font-size: 33px;
   }
@@ -1738,11 +1623,6 @@ textarea::placeholder {
   }
   .welcome-copy h2 {
     font-size: 26px;
-  }
-  .orbit-art {
-    right: -5px;
-    opacity: 0.8;
-    width: 290px;
   }
   .dashboard-columns {
     grid-template-columns: minmax(0, 1.5fr) minmax(245px, 1fr);
@@ -1869,10 +1749,6 @@ textarea::placeholder {
   }
   .welcome-copy h2 {
     font-size: 27px;
-  }
-  .orbit-art {
-    right: -50px;
-    opacity: 0.6;
   }
   .stat-copy strong small {
     font-size: 8px;
@@ -2111,10 +1987,6 @@ textarea::placeholder {
   }
   .welcome-copy p {
     font-size: 10px;
-  }
-  .orbit-art {
-    right: -22px;
-    opacity: 0.65;
   }
   .dashboard-stats {
     gap: 10px;
@@ -2763,10 +2635,6 @@ textarea::placeholder {
   font-size: 11px;
   min-height: 40px;
 }
-.orbit-art-caption {
-  color: #59705a;
-  font-size: 9px;
-}
 .stat-copy strong small {
   font-size: 11px;
   color: #61715f;
@@ -3285,9 +3153,6 @@ textarea::placeholder {
 }
 .welcome-button {
   font-size: 12px;
-}
-.orbit-art-caption {
-  font-size: 10px;
 }
 .stat-copy strong small {
   font-size: 12px;

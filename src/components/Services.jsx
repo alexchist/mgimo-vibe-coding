@@ -907,7 +907,7 @@ export function Profile({ data }) {
     <div className="svc-page">
       <div className="page-heading">
         <div>
-          <span className="svc-eyebrow">Ваше место в Орбите</span>
+          <span className="svc-eyebrow">Ваш учебный профиль</span>
           <h1>Мой профиль</h1>
           <p className="muted">Главное о вашей учёбе — в одной карточке.</p>
         </div>
@@ -924,7 +924,7 @@ export function Profile({ data }) {
           <div className="svc-profile-banner">
             <span className="svc-profile-orbit svc-profile-orbit-one" />
             <span className="svc-profile-orbit svc-profile-orbit-two" />
-            <span className="svc-profile-banner-label">Ваша личная орбита</span>
+            <span className="svc-profile-banner-label">Ваш маршрут в университете</span>
           </div>
           <div className="svc-profile-content">
             <div

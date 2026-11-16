@@ -772,7 +772,7 @@ export function installCampus(app, db, authenticate, options = {}) {
         res
           .type("html")
           .send(
-            `<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Демонстрационная квитанция · Орбита</title><body style="font:16px/1.7 system-ui;max-width:700px;margin:40px auto;padding:24px"><h1>Демонстрационная квитанция</h1><p><strong>ОБРАЗЕЦ · НЕ ЯВЛЯЕТСЯ ПЛАТЁЖНЫМ ДОКУМЕНТОМ</strong></p><p>Все данные вымышлены. Настоящие деньги не списывались.</p><dl><dt>Номер</dt><dd>${escape(receipt.receipt_number)}</dd><dt>Студент</dt><dd>${escape(account.tenant)}</dd><dt>Период</dt><dd>${escape(invoice.period)}</dd><dt>Сумма</dt><dd>${escape((invoice.amount_minor / 100).toFixed(2))} RUB</dd><dt>Режим</dt><dd>${receipt.mode === "demo" ? "Локальная демооплата" : "Тестовый магазин YooKassa"}</dd></dl></body></html>`,
+            `<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Демонстрационная квитанция · Курсом</title><body style="font:16px/1.7 system-ui;max-width:700px;margin:40px auto;padding:24px"><h1>Демонстрационная квитанция</h1><p><strong>ОБРАЗЕЦ · НЕ ЯВЛЯЕТСЯ ПЛАТЁЖНЫМ ДОКУМЕНТОМ</strong></p><p>Все данные вымышлены. Настоящие деньги не списывались.</p><dl><dt>Номер</dt><dd>${escape(receipt.receipt_number)}</dd><dt>Студент</dt><dd>${escape(account.tenant)}</dd><dt>Период</dt><dd>${escape(invoice.period)}</dd><dt>Сумма</dt><dd>${escape((invoice.amount_minor / 100).toFixed(2))} RUB</dd><dt>Режим</dt><dd>${receipt.mode === "demo" ? "Локальная демооплата" : "Тестовый магазин YooKassa"}</dd></dl></body></html>`,
           );
       } catch (error) {
         next(error);

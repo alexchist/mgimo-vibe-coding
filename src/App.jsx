@@ -37,6 +37,7 @@ import { Knowledge } from "./components/Knowledge";
 import { Connections } from "./components/Connections";
 import { AIAssistant } from "./components/AIAssistant";
 import "./styles.css";
+import "./course.css";
 
 const navigation = [
   {
@@ -138,74 +139,22 @@ const statusNames = {
   processing: "Готовится",
   ready: "Готово к скачиванию",
 };
-function OrbitMark({ small = false }) {
-  return (
-    <span className={`orbit-mark ${small ? "small" : ""}`} aria-hidden="true">
-      <span />
-      <i />
-    </span>
-  );
-}
 function Brand() {
   return (
     <span className="brand">
-      <OrbitMark />
-      <span>
-        орбита<span className="brand-dot">.</span>
-      </span>
+      <svg className="course-mark" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+        <path d="M7 27V9h9v9h13M22 11l7 7-7 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span>курсом<span className="brand-dot">.</span></span>
     </span>
   );
 }
-function OrbitArt() {
+function CourseArt() {
   return (
-    <div className="orbit-art" aria-hidden="true">
-      <svg viewBox="0 0 400 300" fill="none">
-        <ellipse
-          cx="210"
-          cy="158"
-          rx="142"
-          ry="85"
-          transform="rotate(-27 210 158)"
-          stroke="#82b3a9"
-          strokeWidth="1"
-        />
-        <ellipse
-          cx="210"
-          cy="158"
-          rx="94"
-          ry="130"
-          transform="rotate(-27 210 158)"
-          stroke="#b3cfc6"
-          strokeWidth="1"
-        />
-        <ellipse
-          cx="210"
-          cy="158"
-          rx="106"
-          ry="53"
-          transform="rotate(-27 210 158)"
-          stroke="#82b3a9"
-          strokeDasharray="3 6"
-        />
-        <circle cx="334" cy="88" r="6" fill="#e9ae86" />
-        <circle cx="83" cy="183" r="5" fill="#15796e" />
-        <circle cx="242" cy="267" r="4" fill="#15796e" />
-        <path
-          d="M326 207v16m-8-8h16M105 71v12m-6-6h12"
-          stroke="#629b8c"
-          strokeWidth="2"
-        />
-      </svg>
-      <span className="orbit-art-core">
-        <GraduationCap size={48} strokeWidth={1.25} />
-      </span>
-      <span className="orbit-art-book">
-        <BookOpen size={25} strokeWidth={1.6} />
-      </span>
-      <span className="orbit-art-check">
-        <Check size={21} />
-      </span>
-      <span className="orbit-art-caption">Всё связано. Всё под рукой.</span>
+    <div className="course-art" aria-hidden="true">
+      <span>Учебный маршрут</span>
+      <div><CalendarDays size={22} /><strong>Пары</strong><ArrowRight size={18} /><FileText size={22} /><strong>Дела</strong><ArrowRight size={18} /><Check size={22} /></div>
+      <p>От расписания — к следующему действию.</p>
     </div>
   );
 }
@@ -245,12 +194,12 @@ function Login({ onLogin }) {
         <a
           className="brand-link"
           href="#dashboard"
-          aria-label="Орбита — главная"
+          aria-label="Курсом — главная"
         >
           <Brand />
         </a>
         <div className="login-story-body">
-          <span className="eyebrow">КАБИНЕТ СТУДЕНТА НОВОГО ПОКОЛЕНИЯ</span>
+          <span className="eyebrow">КУРСОМ · КАБИНЕТ СТУДЕНТА</span>
           <h1>
             Учёба сложная.
             <br />
@@ -260,9 +209,9 @@ function Login({ onLogin }) {
           <p>
             Расписание, оценки и документы.
             <br />
-            Всё, что важно, на одной орбите.
+            Ваш учебный день — понятным маршрутом.
           </p>
-          <OrbitArt />
+          <CourseArt />
         </div>
         <div className="login-story-footer">
           <span>
@@ -276,7 +225,7 @@ function Login({ onLogin }) {
           <span /> Концепт · неофициальный сервис
         </span>
         <div className="login-form-wrap">
-          <span className="eyebrow">ДОБРО ПОЖАЛОВАТЬ В ОРБИТУ</span>
+          <span className="eyebrow">ВАШ УЧЕБНЫЙ МАРШРУТ</span>
           <h2>Рады вас видеть</h2>
           <p className="muted">
             Войдите, чтобы собрать учебный день в одном месте.
@@ -433,7 +382,7 @@ function Dashboard({ data, onNavigate }) {
     <div className="dashboard">
       <div className="dashboard-heading">
         <div>
-          <div className="eyebrow">ВАШ ЛИЧНЫЙ УЧЕБНЫЙ РИТМ</div>
+          <div className="eyebrow">ВАШ ДЕНЬ В КАМПУСЕ</div>
           <h1>
             С возвращением, {user.firstName}
             <span className="greeting-dot">.</span>
@@ -444,15 +393,33 @@ function Dashboard({ data, onNavigate }) {
           <CalendarDays size={16} /> Понедельник, 16 ноября
         </span>
       </div>
+      <div className="day-overview">
+        <section className="day-focus" aria-labelledby="day-focus-title">
+          <span className="day-kicker">Первая пара демо-дня</span>
+          {next ? <>
+            <div className="departure-time">{next.start}<span>— {next.end}</span></div>
+            <h2 id="day-focus-title">{next.subject}</h2>
+            <p className="departure-place"><MapPin size={18} /> Аудитория {next.room}</p>
+            <p className="departure-teacher">{next.teacher} · {next.type}</p>
+            <button className="button" onClick={() => onNavigate("schedule")}>
+              Открыть расписание <ArrowRight size={17} />
+            </button>
+          </> : <>
+            <h2 id="day-focus-title">Сегодня без пар</h2>
+            <p>Посмотрите другие дни демо-недели или займитесь личным планом.</p>
+            <button className="button" onClick={() => onNavigate("schedule", "week")}>Посмотреть неделю <ArrowRight size={17} /></button>
+          </>}
+          {changed && <button className="day-change" onClick={() => onNavigate("schedule")}>
+            <span><strong>Изменение аудитории</strong><br />{changed.subject} · {changed.start} · теперь {changed.room}</span><ArrowRight size={18} />
+          </button>}
+        </section>
       <section className="welcome-card">
         <div className="welcome-copy">
           <span className="mini-label">
             <span /> ЛИЧНЫЙ ПЛАН · ДЕМО-НЕДЕЛЯ
           </span>
           <h2>
-            Меньше суеты.
-            <br />
-            Больше своего времени.
+            {deadline ? "Следующее дело" : "Можно немного выдохнуть"}
           </h2>
           <p>
             <strong>
@@ -463,66 +430,15 @@ function Dashboard({ data, onNavigate }) {
             {planItems.length - openItems.length} из {planItems.length} дел
             отмечено вами.
           </p>
+          <p className="plan-summary-note">Личная отметка не означает сдачу преподавателю.</p>
           <button
             className="button welcome-button"
             onClick={() => onNavigate("plan", deadline?.id)}
           >
-            Мой следующий шаг <ArrowRight size={17} />
+            {deadline ? "Мой следующий шаг" : "Открыть мой план"} <ArrowRight size={17} />
           </button>
         </div>
-        <OrbitArt />
       </section>
-      <div className="dashboard-stats">
-        <button className="stat-card" onClick={() => onNavigate("schedule")}>
-          <span className="stat-icon mint">
-            <CalendarDays size={21} />
-          </span>
-          <span className="stat-copy">
-            <strong>
-              {today.length}
-              <small> пары на сегодня</small>
-            </strong>
-            <span>
-              {today.length
-                ? `${today[0].start} — ${today[today.length - 1].end}`
-                : "Время для себя"}
-            </span>
-          </span>
-          <ChevronRight size={17} />
-        </button>
-        <button className="stat-card" onClick={() => onNavigate("grades")}>
-          <span className="stat-icon lilac">
-            <TrendingUp size={21} />
-          </span>
-          <span className="stat-copy">
-            <strong>
-              {mean}
-              <small> средний балл</small>
-            </strong>
-            <span>{data.semester || "Осенний семестр 2026"}</span>
-          </span>
-          <ChevronRight size={17} />
-        </button>
-        <button className="stat-card" onClick={() => onNavigate("requests")}>
-          <span className="stat-icon peach">
-            <FileText size={21} />
-          </span>
-          <span className="stat-copy">
-            <strong>
-              {pendingRequests.length}
-              <small>
-                {" "}
-                {pendingRequests.length === 1
-                  ? "заявка в работе"
-                  : "заявки в работе"}
-              </small>
-            </strong>
-            <span>
-              {readyRequest ? "Есть готовый документ" : "Все статусы — онлайн"}
-            </span>
-          </span>
-          <ChevronRight size={17} />
-        </button>
       </div>
       <div className="dashboard-columns">
         <div className="dashboard-main-column">
@@ -542,21 +458,6 @@ function Dashboard({ data, onNavigate }) {
                 Вся неделя <ArrowRight size={16} />
               </button>
             </div>
-            {changed && (
-              <div className="schedule-alert">
-                <span className="alert-dot" />
-                <span>
-                  <strong>Аудитория изменилась</strong> · {changed.subject}:{" "}
-                  {changed.room}
-                </span>
-                <button
-                  aria-label="Подробнее об изменении расписания"
-                  onClick={() => onNavigate("schedule")}
-                >
-                  <ArrowRight size={16} />
-                </button>
-              </div>
-            )}
             <div className="today-lessons">
               {today.length ? (
                 today.map((lesson, index) => (
@@ -634,46 +535,6 @@ function Dashboard({ data, onNavigate }) {
           </section>
         </div>
         <div className="dashboard-side-column">
-          <section className="card next-step-card">
-            <div className="section-heading">
-              <h2>Ближайший шаг</h2>
-              <span className="small-icon">
-                <Sparkles size={18} />
-              </span>
-            </div>
-            {deadline ? (
-              <>
-                <span className="deadline-badge">{planDateLabel}</span>
-                <h3>{deadline.title}</h3>
-                <p>{deadline.subject}</p>
-                <div className="deadline-note">
-                  <span /> Личная отметка о подготовке.
-                  <br />
-                  Она не означает сдачу преподавателю.
-                </div>
-                <button
-                  className="button secondary"
-                  onClick={() => onNavigate("plan", deadline.id)}
-                >
-                  Посмотреть детали <ArrowRight size={16} />
-                </button>
-              </>
-            ) : (
-              <>
-                <h3>Можно немного выдохнуть</h3>
-                <p>
-                  Все дела личного плана отмечены. Учебные сроки и оценки
-                  остаются без изменений.
-                </p>
-                <button
-                  className="button secondary"
-                  onClick={() => onNavigate("plan")}
-                >
-                  Открыть мой план <ArrowRight size={16} />
-                </button>
-              </>
-            )}
-          </section>
           <section className="card semester-card">
             <div className="section-heading">
               <h2>Ваш учебный ритм</h2>
@@ -726,6 +587,58 @@ function Dashboard({ data, onNavigate }) {
             </button>
           )}
         </div>
+      </div>
+      <div className="dashboard-stats">
+        <button className="stat-card" onClick={() => onNavigate("schedule")}>
+          <span className="stat-icon mint">
+            <CalendarDays size={21} />
+          </span>
+          <span className="stat-copy">
+            <strong>
+              {today.length}
+              <small> пары на сегодня</small>
+            </strong>
+            <span>
+              {today.length
+                ? `${today[0].start} — ${today[today.length - 1].end}`
+                : "Время для себя"}
+            </span>
+          </span>
+          <ChevronRight size={17} />
+        </button>
+        <button className="stat-card" onClick={() => onNavigate("grades")}>
+          <span className="stat-icon lilac">
+            <TrendingUp size={21} />
+          </span>
+          <span className="stat-copy">
+            <strong>
+              {mean}
+              <small> средний балл</small>
+            </strong>
+            <span>{data.semester || "Осенний семестр 2026"}</span>
+          </span>
+          <ChevronRight size={17} />
+        </button>
+        <button className="stat-card" onClick={() => onNavigate("requests")}>
+          <span className="stat-icon peach">
+            <FileText size={21} />
+          </span>
+          <span className="stat-copy">
+            <strong>
+              {pendingRequests.length}
+              <small>
+                {" "}
+                {pendingRequests.length === 1
+                  ? "заявка в работе"
+                  : "заявки в работе"}
+              </small>
+            </strong>
+            <span>
+              {readyRequest ? "Есть готовый документ" : "Все статусы — онлайн"}
+            </span>
+          </span>
+          <ChevronRight size={17} />
+        </button>
       </div>
       <footer className="dashboard-footnote">
         <span>
@@ -809,8 +722,8 @@ export default function App() {
   useEffect(() => {
     document.title =
       phase === "ready"
-        ? `${navigation.find((n) => n.id === route)?.title || "Главная"} · Орбита`
-        : "Орбита — кабинет студента";
+        ? `${navigation.find((n) => n.id === route)?.title || "Главная"} · Курсом`
+        : "Курсом — кабинет студента";
   }, [route, phase]);
   useEffect(() => {
     if (!mobileOpen) return;
@@ -886,7 +799,7 @@ export default function App() {
       <main className="loading-screen" aria-busy="true">
         <Brand />
         <span className="loading-orbit" />
-        <p>Собираем вашу орбиту…</p>
+        <p>Загружаем ваш учебный день…</p>
       </main>
     );
   if (phase === "error")
@@ -939,7 +852,7 @@ export default function App() {
         <div className="sidebar-brand">
           <a
             href="#dashboard"
-            aria-label="Орбита — главная"
+            aria-label="Курсом — главная"
             onClick={(e) => {
               e.preventDefault();
               navigate("dashboard");
@@ -993,7 +906,6 @@ export default function App() {
             >
               <Icon size={20} strokeWidth={1.7} />
               <span>{title}</span>
-              {id === "assistant" && <span className="new-tag">NEW</span>}
             </a>
           ))}
         </div>

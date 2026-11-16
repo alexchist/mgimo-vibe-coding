@@ -75,7 +75,7 @@ function exportCalendar(lessons) {
     "PRODID:-//Orbita Concept//Student Calendar//RU",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:Орбита — демонстрационное расписание",
+    "X-WR-CALNAME:Курсом — демонстрационное расписание",
     "X-WR-TIMEZONE:Europe/Moscow",
   ];
   for (const lesson of lessons) {
