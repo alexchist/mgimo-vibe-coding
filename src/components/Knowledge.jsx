@@ -286,6 +286,12 @@ export function Knowledge({ notify, focusId }) {
                   ? `Источники по запросу «${results.query}» · ${results.sources.length}`
                   : `По запросу «${results.query}» подтверждений нет`}
               </p>
+              {results.hasResults && (
+                <p className="knowledge-hint">
+                  Поиск по словам: фрагмент может содержать только часть
+                  запроса. Сверяйте цитату и название источника.
+                </p>
+              )}
               {!results.hasResults && (
                 <p className="knowledge-empty">
                   В доступных документах не найдено подходящих фрагментов.

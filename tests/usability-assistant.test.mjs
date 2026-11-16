@@ -96,3 +96,76 @@ test("explicit certificate help, grades and a greeting remain read-only", async 
   assert.equal(greeting.action, undefined);
   assert.equal((await f.actions.list(USER)).actions.length, 0);
 });
+
+test("the observed prepare-only request keeps its purpose clean and waits for separate confirmation", async (t) => {
+  const f = fixture(t);
+  const count = () =>
+    f.db
+      .prepare(
+        "SELECT COUNT(*) AS n FROM records WHERE user_id=? AND kind='requests'",
+      )
+      .get(USER).n;
+  const before = count();
+  const answer = await f.assistant.chat(USER, {
+    message:
+      "Подготовь справку об обучении для учебного конкурса «Меридиан». Пока не подавай заявку, хочу сначала проверить назначение.",
+  });
+  assert.equal(answer.action?.type, "request.create", JSON.stringify(answer));
+  assert.equal(answer.action.params.type, "enrollment");
+  assert.equal(answer.action.params.purpose, "учебного конкурса «Меридиан»");
+  assert.equal(count(), before);
+  assert.match(answer.reply, /До подтверждения.*не оформляется/);
+  await assert.rejects(f.actions.confirm("student-mark", answer.action.id), {
+    status: 404,
+  });
+  assert.equal(count(), before);
+  const first = await f.actions.confirm(USER, answer.action.id);
+  const again = await f.actions.confirm(USER, answer.action.id);
+  assert.equal(first.result.request.id, again.result.request.id);
+  assert.equal(count(), before + 1);
+});
+
+test("polite preparation asks for missing purpose and accepts a separate field reply", async (t) => {
+  const f = fixture(t);
+  const draft = await f.assistant.chat(USER, {
+    message: "Подготовьте, пожалуйста, справку об обучении",
+  });
+  assert.equal(draft.action, undefined);
+  assert.match(draft.reply, /Уточните.*цель/);
+  const answer = await f.assistant.chat(USER, {
+    message: "Для учебного клуба. Пока не отправляй заявку",
+    conversationId: draft.conversationId,
+  });
+  assert.equal(answer.action?.type, "request.create");
+  assert.equal(answer.action.params.purpose, "учебного клуба");
+  const joined = await f.assistant.chat(USER, {
+    message:
+      "Подготовь справку об обучении для учебной практики и пока не отправляй заявку",
+  });
+  assert.equal(joined.action?.params.purpose, "учебной практики");
+});
+
+test("questions, negated requests and cancellation cannot prepare a certificate even with draft fields", async (t) => {
+  const f = fixture(t);
+  const messages = [
+    "Как подготовить справку об обучении для конкурса?",
+    "Можно ли подготовить справку об обучении для конкурса?",
+    "Мне не нужна справка об обучении для конкурса",
+    "Я не хочу заказать справку об обучении для конкурса",
+    "Не подготавливай справку об обучении для конкурса",
+    "Отмени запрос на справку об обучении для конкурса",
+    "Подготовь справку об обучении для конкурса. Передумала, не надо",
+    "Подготовь справку об обучении для конкурса. Пока не подавай заявку. Передумала, не надо",
+  ];
+  for (const message of messages) {
+    const draft = await f.assistant.chat(USER, {
+      message: "Закажи справку об обучении",
+    });
+    const answer = await f.assistant.chat(USER, {
+      message,
+      conversationId: draft.conversationId,
+    });
+    assert.equal(answer.action, undefined, message);
+  }
+  assert.equal((await f.actions.list(USER)).actions.length, 0);
+});

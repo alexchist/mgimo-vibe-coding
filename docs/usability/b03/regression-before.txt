@@ -1,0 +1,56 @@
+[WebServer] (node:17717) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:17725) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/usability.spec.js:3:1 › opening a confirmed request on mobile keeps its card in view (7.6s)
+
+
+  1) tests/e2e/usability.spec.js:3:1 › opening a confirmed request on mobile keeps its card in view 
+
+    Error: expect(locator).toBeInViewport() failed
+
+    Locator:  locator('.svc-request-open .svc-request-toggle')
+    Expected: in viewport
+    Received: viewport ratio 0
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeInViewport" locator('.svc-request-open .svc-request-toggle') with timeout 5000ms
+      - waiting for locator('.svc-request-open .svc-request-toggle')
+        14 × locator resolved to <button aria-expanded="true" class="svc-request-toggle" id="request-toggle-3a368d73-2cf7-49a5-a735-dfb90e60e3dc" aria-controls="request-3a368d73-2cf7-49a5-a735-dfb90e60e3dc">…</button>
+           - unexpected value "viewport ratio 0"
+
+
+      12 |   const toggle = page.locator(".svc-request-open .svc-request-toggle");
+      13 |   await expect(toggle).toBeFocused();
+    > 14 |   await expect(toggle).toBeInViewport({ ratio: 1 });
+         |                        ^
+      15 |   await page.screenshot({ path: testInfo.outputPath("request-in-view.png") });
+      16 | });
+      17 |
+        at /workspace/mgimo-vibe-coding/tests/e2e/usability.spec.js:14:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/usability-opening-a-confir-88653-bile-keeps-its-card-in-view/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/usability-opening-a-confir-88653-bile-keeps-its-card-in-view/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/usability-opening-a-confir-88653-bile-keeps-its-card-in-view/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/usability-opening-a-confir-88653-bile-keeps-its-card-in-view/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/e2e/usability.spec.js:3:1 › opening a confirmed request on mobile keeps its card in view ─
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

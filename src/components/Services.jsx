@@ -842,7 +842,7 @@ export function Notifications({ data, refresh, notify }) {
                           onClick={() => markRead(item.id)}
                         >
                           <Check size={15} aria-hidden="true" />
-                          Прочитано
+                          Отметить прочитанным
                         </button>
                       )}
                     </div>
@@ -924,7 +924,9 @@ export function Profile({ data }) {
           <div className="svc-profile-banner">
             <span className="svc-profile-orbit svc-profile-orbit-one" />
             <span className="svc-profile-orbit svc-profile-orbit-two" />
-            <span className="svc-profile-banner-label">Ваш маршрут в университете</span>
+            <span className="svc-profile-banner-label">
+              Ваш маршрут в университете
+            </span>
           </div>
           <div className="svc-profile-content">
             <div

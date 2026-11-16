@@ -74,6 +74,16 @@ function requestDraft(message, existing = {}) {
   };
 }
 
+function requestInstruction(message) {
+  // Submission controls belong to the conversation, not the destination field.
+  // Keep organization punctuation intact unless an explicit hold instruction follows.
+  return message
+    .split(
+      /(?:[.;!]\s*|,\s*|\s+(?:и|но)\s+)(?=(?:но\s+)?(?:пока\s+)?не\s+(?:подавай|отправляй|подтверждай)(?:те)?(?:\s|$))/iu,
+    )[0]
+    .trim();
+}
+
 function bookingDraft(message, rooms, existing = {}) {
   const query = normalize(message);
   const matches = rooms.filter(
@@ -436,20 +446,51 @@ export function installAssistant(app, db, authenticate, dependencies = {}) {
           "Начисления и оплата находятся в разделе общежития. Я не выполняю платежи: сумму и режим оплаты нужно проверить и подтвердить там самостоятельно.",
         links: [link("housing", "Открыть общежитие")],
       };
-    const createRequest =
-      /(?:закажи|оформи|подай|хочу заказать|хочу оформить|нужна справка)/.test(
+    const requestMessage = requestInstruction(message);
+    const requestQuery = normalize(requestMessage);
+    const requestQuestion =
+      /\?/.test(requestQuery) ||
+      /^(?:как|когда|где|почему|зачем|что|какой|какая|какие|сколько|можно|могу|нужно\s+ли|если)(?:\s|$)/.test(
+        requestQuery,
+      );
+    const requestBlocked =
+      /не\s+(?:хочу\s+)?(?:подгот|заказ|закаж|оформ|подай|подавай|отправ|нужна)|отмени(?:те)?\s+(?:запрос|подготов|справ|заяв)|передумал|не\s+надо/.test(
+        requestQuery,
+      ) ||
+      /не\s+(?:хочу\s+)?(?:подгот|заказ|закаж|оформ)|отмени(?:те)?\s+(?:запрос|подготов|справ|заяв)|передумал|не\s+надо/.test(
         query,
+      );
+    if (
+      requestBlocked &&
+      (draft?.type === "request.create" ||
+        /справ|выписк|заявлен/.test(requestQuery))
+    ) {
+      if (draft?.type === "request.create") saveDraft(record, null);
+      return {
+        reply:
+          "Не буду готовить новый запрос по этому сообщению. Ничего не отправлено; ранее поданные заявки не менялись.",
+        links: [link("requests", "Открыть заявки")],
+      };
+    }
+    const createRequest =
+      /^(?:пожалуйста[,\s]+)?(?:подготовь(?:те)?|закажи(?:те)?|оформи(?:те)?|подай(?:те)?|хочу\s+(?:заказать|оформить|подготовить)|(?:мне\s+)?нужна)(?=[,\s]|$)/.test(
+        requestQuery,
       ) &&
-      /справ|выписк|отпуск|заявлен/.test(query) &&
-      !/^как\s/.test(query);
+      /справ|выписк|отпуск|заявлен/.test(requestQuery) &&
+      !requestQuestion &&
+      !requestBlocked;
     const requestFollowup =
       draft?.type === "request.create" &&
       /(?:^|\s)(для|цель|куда|причина)|об обучен|стипенд|выписк|отпуск/.test(
-        query,
+        requestQuery,
       ) &&
-      !/\?$|^как |^когда /.test(query);
+      !requestQuestion &&
+      !requestBlocked;
     if (createRequest || requestFollowup) {
-      const params = requestDraft(message, requestFollowup ? draft.params : {});
+      const params = requestDraft(
+        requestMessage,
+        requestFollowup ? draft.params : {},
+      );
       const missing = [
         !params.type &&
           "тип справки (об обучении, о стипендии, выписка или отпуск)",

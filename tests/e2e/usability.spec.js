@@ -1,5 +1,35 @@
 import { test, expect } from "@playwright/test";
 
+test("opening a confirmed request on mobile keeps its card in view", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 360, height: 900 });
+  await page.goto("/");
+  await page
+    .getByRole("button", {
+      name: "АМ Алиса Международные отношения",
+      exact: true,
+    })
+    .click();
+  await page.goto("/#assistant");
+  await page
+    .getByLabel("Ваш вопрос навигатору", { exact: true })
+    .fill("Закажи справку об обучении для вымышленного конкурса Лира");
+  await page
+    .getByRole("button", { name: "Задать вопрос", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Подтвердить действие", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Открыть заявку", exact: true })
+    .click();
+  const toggle = page.locator(".svc-request-open .svc-request-toggle");
+  await expect(toggle).toBeFocused();
+  await expect(toggle).toBeInViewport({ ratio: 1 });
+  await page.screenshot({ path: testInfo.outputPath("request-in-view.png") });
+});
+
 test("the mobile room-change link reveals and focuses the actual lesson", async ({
   page,
 }, testInfo) => {

@@ -698,11 +698,14 @@ export default function App() {
     initialize();
     const hashChange = () => {
       setRoute(getRoute());
-      setRouteContext(getRouteContext());
+      const context = getRouteContext();
+      setRouteContext(context);
       setMobileOpen(false);
       setQuery("");
       setSearchFocused(false);
-      window.scrollTo(0, 0);
+      // Object links manage their own focus/scroll. A later hashchange must not
+      // undo that positioning after the target card has already been focused.
+      if (!context || /^(week|session|day-[1-7])$/.test(context)) window.scrollTo(0, 0);
     };
     const unauthorized = () => {
       ++authGeneration.current;

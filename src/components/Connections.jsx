@@ -350,8 +350,8 @@ export function Connections({ notify }) {
                       </p>
                       <p className="connections-configuration">
                         {channel.configured
-                          ? "Серверный адаптер настроен"
-                          : "Серверный адаптер ожидает настройки"}
+                          ? "Подключение к сервису настроено"
+                          : "Для настоящих сообщений администратору нужно настроить подключение"}
                       </p>
                       {channel.connection ? (
                         <>
