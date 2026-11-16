@@ -1,0 +1,56 @@
+[WebServer] (node:21617) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:21625) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/flows.spec.js:225:1 › schedule filters, real calendar download and grade details work (6.2s)
+
+
+  1) tests/e2e/flows.spec.js:225:1 › schedule filters, real calendar download and grade details work 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('button', { name: 'Сегодня в демо', exact: true })
+    Expected: "false"
+    Received: "true"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('button', { name: 'Сегодня в демо', exact: true }) with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Сегодня в демо', exact: true })
+        14 × locator resolved to <button class="active" aria-pressed="true">Сегодня в демо</button>
+           - unexpected value "true"
+
+
+      232 |   ).toBeVisible();
+      233 |   await page.getByRole("button", { name: /Воскресенье, 22 ноября/ }).click();
+    > 234 |   await expect(page.getByRole("button", { name: "Сегодня в демо", exact: true })).toHaveAttribute("aria-pressed", "false");
+          |                                                                                   ^
+      235 |   await expect(
+      236 |     page.getByRole("heading", { name: "День без пар", exact: true }),
+      237 |   ).toBeVisible();
+        at /workspace/mgimo-vibe-coding/tests/e2e/flows.spec.js:234:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/flows-schedule-filters-rea-bdf1d-load-and-grade-details-work/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/flows-schedule-filters-rea-bdf1d-load-and-grade-details-work/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/flows-schedule-filters-rea-bdf1d-load-and-grade-details-work/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/flows-schedule-filters-rea-bdf1d-load-and-grade-details-work/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/e2e/flows.spec.js:225:1 › schedule filters, real calendar download and grade details work 
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

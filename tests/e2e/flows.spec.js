@@ -232,6 +232,9 @@ test("schedule filters, real calendar download and grade details work", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: /Воскресенье, 22 ноября/ }).click();
   await expect(
+    page.getByRole("button", { name: "Сегодня в демо", exact: true }),
+  ).toHaveAttribute("aria-pressed", "false");
+  await expect(
     page.getByRole("heading", { name: "День без пар", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Вся неделя", exact: true }).click();

@@ -1,0 +1,54 @@
+[WebServer] (node:23126) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+(node:23140) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/e2e/features.spec.js:313:1 › on 360 px the assistant prepares a request and waits for a separate confirmation (1.5s)
+  ✓  2 tests/e2e/features.spec.js:376:3 › five new sections fit 1440 px and pass automated WCAG A/AA checks (6.8s)
+  ✓  3 tests/e2e/features.spec.js:376:3 › five new sections fit 360 px and pass automated WCAG A/AA checks (5.4s)
+  ✓  4 tests/e2e/flows.spec.js:225:1 › schedule filters, real calendar download and grade details work (1.6s)
+  ✘  5 tests/e2e/usability.spec.js:3:1 › a student can discard one preparation and use the form without submitting either draft (813ms)
+(node:23590) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  6 tests/e2e/usability.spec.js:66:1 › opening a confirmed request on mobile keeps its card in view (1.6s)
+  ✓  7 tests/e2e/usability.spec.js:96:1 › the mobile room-change link reveals and focuses the actual lesson (1.3s)
+  ✓  8 tests/e2e/usability.spec.js:123:1 › a lesson keeps its original daily number when the schedule is filtered (1.2s)
+
+
+  1) tests/e2e/usability.spec.js:3:1 › a student can discard one preparation and use the form without submitting either draft 
+
+    TypeError: Cannot read properties of undefined (reading 'length')
+
+      13 |     .click();
+      14 |   const before = (await (await page.request.get("/api/bootstrap")).json())
+    > 15 |     .requests.length;
+         |               ^
+      16 |   await page.goto("/#assistant");
+      17 |   for (const purpose of ["конкурса Вега", "стажировки Лира"]) {
+      18 |     await page
+        at /workspace/mgimo-vibe-coding/tests/e2e/usability.spec.js:15:15
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/usability-a-student-can-di-976f3-out-submitting-either-draft/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/usability-a-student-can-di-976f3-out-submitting-either-draft/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/usability-a-student-can-di-976f3-out-submitting-either-draft/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/usability-a-student-can-di-976f3-out-submitting-either-draft/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/e2e/usability.spec.js:3:1 › a student can discard one preparation and use the form without submitting either draft 
+  7 passed (24.0s)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

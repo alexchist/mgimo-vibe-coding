@@ -838,6 +838,7 @@ export function Notifications({ data, refresh, notify }) {
                       {!item.read && (
                         <button
                           className="svc-text-button svc-text-muted"
+                          aria-label={`Отметить прочитанным: ${item.title}`}
                           disabled={!!busy}
                           onClick={() => markRead(item.id)}
                         >

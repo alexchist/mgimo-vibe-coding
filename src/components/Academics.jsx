@@ -289,8 +289,8 @@ export function Schedule({ data, viewContext }) {
         <div className="ac-calendar-toolbar">
           <div className="ac-segmented" aria-label="Вид расписания">
             <button
-              className={view === "today" ? "active" : ""}
-              aria-pressed={view === "today"}
+              className={view === "today" && day === 1 ? "active" : ""}
+              aria-pressed={view === "today" && day === 1}
               onClick={() => {
                 setView("today");
                 setDay(1);
@@ -621,6 +621,10 @@ export function Grades({ data, viewContext }) {
           <h1 className="page-heading">Успеваемость</h1>
           <p className="ac-subtitle">
             {data.semester || "Осенний семестр 2026"} · демонстрационные данные
+          </p>
+          <p className="ac-small-muted">
+            В демо доступен только этот семестр; история прошлых периодов не
+            добавлена.
           </p>
         </div>
         <span className="ac-semester-badge">

@@ -50,6 +50,8 @@ Root даёт `actions.prepare(userId,{type,params},{actorId='browser'}={}) -> {
 
 Routes GET `/api/assistant/status`, POST `/api/assistant/chat` `{message,history?}` -> `{reply,mode,sources?,action?,links?}`; POST `/api/assistant/actions/:id/confirm` -> shared actions result. При отсутствии ключей режим честно назван локальным демопомощником, но простые запросы расписания, поиска и подготовки заявки/брони работают.
 
+После UX-батча 4: POST `/api/assistant/actions/:id/cancel` принимает только `{}` и отменяет выбранную browser-подготовку. Owner/actor проверяются сервером; чужой ID — 404. Отмена повторобезопасна и терминальна, confirm отменённого action — 409. Отменять можно только pending без started_at; выполнявшиеся/выполненные действия требуют проверки результата. Отменённые строки сохраняются, но не занимают квоту активных и не восстанавливаются как ожидающие. UI предлагает отдельную отмену либо для справки отмену с переходом в обычную форму; это не создаёт заявку и не меняет другие карточки. Подготовленные параметры не редактируются под прежним ID.
+
 Frontend `AIAssistant({data,onNavigate,notify,refresh})` из `src/components/AIAssistant.jsx` + `ai-assistant.css`; shell route `assistant` заменяет старый Assistant, но сохраняет привычные примеры вопросов и точные переходы (старые тесты ожидают кнопки «Как заказать справку?», «Какой ближайший дедлайн?», «Открыть заявки», «Открыть дело в плане» и лог ответов). Тесты `tests/assistant.test.mjs`; provider injectable fetch для проверки без внешних вызовов.
 
 ## MCP и интеграция — root

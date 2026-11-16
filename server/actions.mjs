@@ -108,13 +108,13 @@ export function createActionService(db, { campus, requests, now = Date.now }) {
     }
     const count = db
       .prepare(
-        "SELECT count(*) AS n FROM assistant_actions WHERE user_id = ? AND status != 'completed' AND expires_at > ?",
+        "SELECT count(*) AS n FROM assistant_actions WHERE user_id = ? AND status IN ('pending', 'executing') AND expires_at > ?",
       )
       .get(userId, now()).n;
     if (count >= 30)
       fail(
         429,
-        "Слишком много неподтверждённых действий. Подождите 10 минут или подтвердите нужные.",
+        "Слишком много неподтверждённых действий. Отмените ненужные, подтвердите нужные или подождите 10 минут.",
       );
     const id = randomUUID(),
       created = now();
@@ -136,6 +136,11 @@ export function createActionService(db, { campus, requests, now = Date.now }) {
     const row = find(userId, id, actorId);
     if (row.status === "completed")
       return { action: publicAction(row), result: JSON.parse(row.result_json) };
+    if (row.status === "cancelled")
+      fail(
+        409,
+        "Эта подготовка отменена. Для нового действия подготовьте новую карточку.",
+      );
     if (row.expires_at <= now())
       fail(410, "Подтверждение устарело. Подготовьте действие заново.");
     const claimed = db
@@ -167,9 +172,30 @@ export function createActionService(db, { campus, requests, now = Date.now }) {
       throw error;
     }
   }
+  function cancel(userId, id, { actorId = "browser" } = {}) {
+    const row = find(userId, id, actorId);
+    if (row.status === "cancelled") return { action: publicAction(row) };
+    if (row.status !== "pending" || row.started_at !== null)
+      fail(
+        409,
+        "Действие уже запускалось или выполнено. Сначала проверьте его результат; отмена подготовки не отменяет поданные заявки и брони.",
+      );
+    const changed = db
+      .prepare(
+        "UPDATE assistant_actions SET status = 'cancelled' WHERE id = ? AND user_id = ? AND actor_id = ? AND status = 'pending' AND started_at IS NULL",
+      )
+      .run(id, userId, actorId);
+    if (!changed.changes)
+      fail(
+        409,
+        "Состояние действия изменилось. Обновите раздел перед продолжением.",
+      );
+    return { action: publicAction(find(userId, id, actorId)) };
+  }
   return {
     prepare,
     confirm,
+    cancel,
     get(userId, id, { actorId = "browser" } = {}) {
       return { action: publicAction(find(userId, id, actorId)) };
     },
@@ -177,7 +203,7 @@ export function createActionService(db, { campus, requests, now = Date.now }) {
       return {
         actions: db
           .prepare(
-            "SELECT * FROM assistant_actions WHERE user_id = ? AND actor_id = ? AND status != 'completed' AND expires_at > ? ORDER BY created_at DESC LIMIT 30",
+            "SELECT * FROM assistant_actions WHERE user_id = ? AND actor_id = ? AND status IN ('pending', 'executing') AND expires_at > ? ORDER BY created_at DESC LIMIT 30",
           )
           .all(userId, actorId, now())
           .map(publicAction),

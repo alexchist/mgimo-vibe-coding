@@ -785,5 +785,10 @@ export function installAssistant(app, db, authenticate, dependencies = {}) {
       res.json(await actions.confirm(req.user.id, req.params.id));
     },
   );
+  app.post("/api/assistant/actions/:id/cancel", authenticate, (req, res) => {
+    if (!ownObject(req.body, []))
+      throw fail("Отмена подготовки не принимает дополнительные параметры.");
+    res.json(actions.cancel(req.user.id, req.params.id));
+  });
   return { chat, status: ai.status };
 }

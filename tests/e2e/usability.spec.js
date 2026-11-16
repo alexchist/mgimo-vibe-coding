@@ -1,5 +1,69 @@
 import { test, expect } from "@playwright/test";
 
+test("a student can discard one preparation and use the form without submitting either draft", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page
+    .getByRole("button", {
+      name: "АМ Алиса Международные отношения",
+      exact: true,
+    })
+    .click();
+  await expect(page.getByRole("heading", { name: "С возвращением, Алиса." })).toBeVisible();
+  const before = (await (await page.request.get("/api/bootstrap")).json())
+    .requests.length;
+  await page.goto("/#assistant");
+  for (const purpose of ["конкурса Вега", "стажировки Лира"]) {
+    await page
+      .getByLabel("Ваш вопрос навигатору", { exact: true })
+      .fill(`Подготовь справку об обучении для ${purpose}`);
+    await page
+      .getByRole("button", { name: "Задать вопрос", exact: true })
+      .click();
+    await expect(
+      page.locator(".ai-action").filter({ hasText: purpose }),
+    ).toBeVisible();
+  }
+  const first = page.locator(".ai-action").filter({ hasText: "конкурса Вега" });
+  const second = page
+    .locator(".ai-action")
+    .filter({ hasText: "стажировки Лира" });
+  await first
+    .getByRole("button", { name: "Отменить подготовку", exact: true })
+    .click();
+  await expect(
+    first.getByRole("button", { name: "Подтвердить действие", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    second.getByRole("button", { name: "Подтвердить действие", exact: true }),
+  ).toBeEnabled();
+  await second
+    .getByRole("button", { name: "Отменить и заполнить вручную", exact: true })
+    .click();
+  await expect(page).toHaveURL(/#requests$/);
+  await expect(
+    page.getByLabel("Куда предоставить", { exact: false }),
+  ).toBeVisible();
+  expect(
+    (await (await page.request.get("/api/bootstrap")).json()).requests.length,
+  ).toBe(before);
+  await page.screenshot({
+    path: testInfo.outputPath("manual-after-cancel.png"),
+  });
+  await page.goto("/#assistant");
+  await page.reload();
+  await expect(
+    page.getByLabel("Ваш вопрос навигатору", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".ai-action")
+      .filter({ hasText: /конкурса Вега|стажировки Лира/ }),
+  ).toHaveCount(0);
+});
+
 test("opening a confirmed request on mobile keeps its card in view", async ({
   page,
 }, testInfo) => {

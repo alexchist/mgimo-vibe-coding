@@ -33,18 +33,40 @@ const fields = {
   end: "Конец, МСК",
 };
 
-function ActionCard({ action, result, busy, error, onConfirm, navigate }) {
+function ActionCard({
+  action,
+  result,
+  busy,
+  error,
+  onConfirm,
+  onCancel,
+  navigate,
+}) {
+  const cardRef = useRef(null);
   const completed = action.status === "completed" || Boolean(result);
+  const cancelled = action.status === "cancelled";
   const expired =
-    !completed && new Date(action.expiresAt).getTime() <= Date.now();
+    !completed &&
+    !cancelled &&
+    new Date(action.expiresAt).getTime() <= Date.now();
+  useEffect(() => {
+    if (cancelled) cardRef.current?.focus({ preventScroll: true });
+  }, [cancelled]);
   return (
-    <section className="ai-action" aria-label="Подтверждение действия">
+    <section
+      className="ai-action"
+      aria-label="Подтверждение действия"
+      ref={cardRef}
+      tabIndex={-1}
+    >
       <h3>
         {completed
           ? "Действие выполнено"
-          : expired
-            ? "Предложение истекло"
-            : "Проверьте перед подтверждением"}
+          : cancelled
+            ? "Подготовка отменена"
+            : expired
+              ? "Предложение истекло"
+              : "Проверьте перед подтверждением"}
       </h3>
       <p>{action.summary}</p>
       <dl>
@@ -81,6 +103,11 @@ function ActionCard({ action, result, busy, error, onConfirm, navigate }) {
             <ArrowRight size={15} aria-hidden="true" />
           </button>
         </>
+      ) : cancelled ? (
+        <p className="ai-note" role="status">
+          Эта карточка больше не может создать заявку или изменить бронь. Другие
+          подготовленные действия сохранены.
+        </p>
       ) : (
         <>
           <p className="ai-note">
@@ -97,8 +124,36 @@ function ActionCard({ action, result, busy, error, onConfirm, navigate }) {
             {busy && (
               <LoaderCircle size={16} className="ai-spin" aria-hidden="true" />
             )}
-            {busy ? "Подтверждаем…" : "Подтвердить действие"}
+            {busy ? "Подождите…" : "Подтвердить действие"}
           </button>
+          {!expired && (
+            <div className="ai-action-controls">
+              <button
+                type="button"
+                className="button secondary"
+                disabled={busy || action.status !== "pending"}
+                onClick={() => onCancel(action)}
+              >
+                Отменить подготовку
+              </button>
+              {action.type === "request.create" && (
+                <>
+                  <p className="ai-note">
+                    Назначение неточное? В форме можно заново выбрать документ и
+                    указать назначение. Другие карточки останутся без изменений.
+                  </p>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    disabled={busy || action.status !== "pending"}
+                    onClick={() => onCancel(action, true)}
+                  >
+                    Отменить и заполнить вручную
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </>
       )}
       {error && (
@@ -117,6 +172,7 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
   const [restoredActions, setRestoredActions] = useState([]);
   const [results, setResults] = useState({});
   const [actionErrors, setActionErrors] = useState({});
+  const [actionStates, setActionStates] = useState({});
   const [confirming, setConfirming] = useState("");
   const [conversationId, setConversationId] = useState(undefined);
   const [query, setQuery] = useState("");
@@ -235,15 +291,48 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
       if (alive.current) setConfirming("");
     }
   }
+  async function cancel(action, openForm = false) {
+    if (confirmLock.current) return;
+    confirmLock.current = true;
+    setConfirming(action.id);
+    setActionErrors((current) => ({ ...current, [action.id]: "" }));
+    try {
+      const response = await api(
+        `/assistant/actions/${encodeURIComponent(action.id)}/cancel`,
+        { method: "POST", body: {} },
+      );
+      if (response.action?.status !== "cancelled")
+        throw new Error(
+          "Не удалось подтвердить отмену подготовки. Повторите попытку.",
+        );
+      if (!alive.current) return;
+      setActionStates((current) => ({
+        ...current,
+        [action.id]: response.action,
+      }));
+      notify?.("Выбранная подготовка отменена.");
+      if (openForm) navigate("requests");
+    } catch (cause) {
+      if (alive.current)
+        setActionErrors((current) => ({
+          ...current,
+          [action.id]: cause.message,
+        }));
+    } finally {
+      confirmLock.current = false;
+      if (alive.current) setConfirming("");
+    }
+  }
   function actionCard(action) {
     return (
       <ActionCard
         key={action.id}
-        action={action}
+        action={actionStates[action.id] || action}
         result={results[action.id]}
         busy={Boolean(confirming)}
         error={actionErrors[action.id]}
         onConfirm={confirm}
+        onCancel={cancel}
         navigate={navigate}
       />
     );
