@@ -1,0 +1,12 @@
+{
+  "actions": 15,
+  "pageErrors": [],
+  "operatorErrors": [
+    {
+      "step": "010",
+      "action": "fill",
+      "error": "locator.fill: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByLabel('Куда предоставить', { exact: true })\u001b[22m\n"
+    }
+  ],
+  "downloads": []
+}

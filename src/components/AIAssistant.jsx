@@ -71,7 +71,7 @@ function ActionCard({
       <p>{action.summary}</p>
       <dl>
         {Object.entries(action.params || {})
-          .filter(([key]) => fields[key])
+          .filter(([key, value]) => fields[key] && value !== "" && value != null)
           .map(([key, value]) => (
             <div key={key}>
               <dt>{fields[key]}</dt>

@@ -793,6 +793,7 @@ export function Housing({ notify, focusId, refresh: refreshShell }) {
                           <a
                             className="campus-text-button"
                             href={`/api/housing/invoices/${encodeURIComponent(invoice.id)}/receipt`}
+                            aria-label={`Скачать образец квитанции: ${periodLabel(invoice.period)}`}
                             download
                           >
                             <Download size={15} /> Скачать образец квитанции

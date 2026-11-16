@@ -208,7 +208,7 @@ test("housing demo payment waits for confirmation and produces a visibly marked 
   await expect(card).toContainText("Оплачено · демо");
   const downloadPromise = page.waitForEvent("download");
   await card
-    .getByRole("link", { name: "Скачать образец квитанции", exact: true })
+    .getByRole("link", { name: /^Скачать образец квитанции: / })
     .click();
   const download = await downloadPromise;
   const receipt = await readFile(await download.path(), "utf8");
