@@ -1,0 +1,99 @@
+[WebServer] (node:38410) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:38424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/usability-navigation.spec.js:16:3 › section navigation places keyboard focus in content at 1440px (6.5s)
+(node:38594) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/e2e/usability-navigation.spec.js:16:3 › section navigation places keyboard focus in content at 390px (6.5s)
+
+
+  1) tests/e2e/usability-navigation.spec.js:16:3 › section navigation places keyboard focus in content at 1440px 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('#main-content')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" locator('#main-content') with timeout 5000ms
+      - waiting for locator('#main-content')
+        14 × locator resolved to <main tabindex="-1" id="main-content" class="page-content">…</main>
+           - unexpected value "inactive"
+
+
+      19 |     if (width < 600) await page.getByRole("button", { name: "Открыть меню", exact: true }).click();
+      20 |     await page.getByRole("link", { name: "Заявки и справки", exact: true }).click();
+    > 21 |     await expect(page.locator("#main-content")).toBeFocused();
+         |                                                 ^
+      22 |     await page.keyboard.press("Tab");
+      23 |     await expect(page.getByRole("button", { name: "Мои заявки", exact: true })).toBeFocused();
+      24 |     await page.keyboard.press("Enter");
+        at /workspace/mgimo-vibe-coding/tests/e2e/usability-navigation.spec.js:21:49
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/usability-navigation-secti-3b01e--focus-in-content-at-1440px/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/usability-navigation-secti-3b01e--focus-in-content-at-1440px/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/usability-navigation-secti-3b01e--focus-in-content-at-1440px/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/usability-navigation-secti-3b01e--focus-in-content-at-1440px/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests/e2e/usability-navigation.spec.js:16:3 › section navigation places keyboard focus in content at 390px 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('#main-content')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" locator('#main-content') with timeout 5000ms
+      - waiting for locator('#main-content')
+        14 × locator resolved to <main tabindex="-1" id="main-content" class="page-content">…</main>
+           - unexpected value "inactive"
+
+
+      19 |     if (width < 600) await page.getByRole("button", { name: "Открыть меню", exact: true }).click();
+      20 |     await page.getByRole("link", { name: "Заявки и справки", exact: true }).click();
+    > 21 |     await expect(page.locator("#main-content")).toBeFocused();
+         |                                                 ^
+      22 |     await page.keyboard.press("Tab");
+      23 |     await expect(page.getByRole("button", { name: "Мои заявки", exact: true })).toBeFocused();
+      24 |     await page.keyboard.press("Enter");
+        at /workspace/mgimo-vibe-coding/tests/e2e/usability-navigation.spec.js:21:49
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/usability-navigation-secti-1ba46-d-focus-in-content-at-390px/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/usability-navigation-secti-1ba46-d-focus-in-content-at-390px/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/usability-navigation-secti-1ba46-d-focus-in-content-at-390px/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/usability-navigation-secti-1ba46-d-focus-in-content-at-390px/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests/e2e/usability-navigation.spec.js:16:3 › section navigation places keyboard focus in content at 1440px 
+    tests/e2e/usability-navigation.spec.js:16:3 › section navigation places keyboard focus in content at 390px 
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

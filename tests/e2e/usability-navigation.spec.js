@@ -12,6 +12,29 @@ async function login(page) {
   ).toBeVisible();
 }
 
+for (const width of [1440, 390]) {
+  test(`section navigation places keyboard focus in content at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await login(page);
+    if (width < 600)
+      await page
+        .getByRole("button", { name: "Открыть меню", exact: true })
+        .click();
+    await page
+      .getByRole("link", { name: "Заявки и справки", exact: true })
+      .click();
+    await expect(page.locator("#main-content")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("button", { name: "Мои заявки", exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#my-requests-title")).toBeFocused();
+  });
+}
+
 test("section search reopens for another query after selecting a result", async ({
   page,
 }, testInfo) => {
@@ -75,7 +98,9 @@ test("section search matches combined Russian terms regardless of order", async 
   await expect(housing).toBeVisible();
   await search.fill("оплата общежития фиолетовая");
   await expect(housing).not.toBeVisible();
-  await expect(page.getByText("Ничего не нашли.", { exact: false })).toBeVisible();
+  await expect(
+    page.getByText("Ничего не нашли.", { exact: false }),
+  ).toBeVisible();
   await search.fill("зачеты сессия");
   await expect(
     page.getByRole("button", { name: "Успеваемость", exact: true }),

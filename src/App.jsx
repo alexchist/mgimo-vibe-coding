@@ -781,6 +781,12 @@ export default function App() {
     setQuery("");
     setSearchFocused(false);
     window.scrollTo(0, 0);
+    if (!focusId) {
+      requestAnimationFrame(() => {
+        if (window.location.hash === `#${id}`)
+          document.getElementById("main-content")?.focus({ preventScroll: true });
+      });
+    }
   }
   function notify(message) {
     setToast(message);
