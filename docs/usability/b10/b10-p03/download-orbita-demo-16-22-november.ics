@@ -1,0 +1,153 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Orbita Concept//Student Calendar//RU
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Курсом — демонстрационное распис
+ ание
+X-WR-TIMEZONE:Europe/Moscow
+BEGIN:VEVENT
+UID:student-alisa-lesson-1@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261116T060000Z
+DTEND:20261116T072000Z
+SUMMARY:История международных отношений
+LOCATION:Главный корпус\, 314
+DESCRIPTION:Лекция\nПреподаватель: Вера Лисовс
+ кая\nВымышленные данные. Концепт\, не офи
+ циальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-2@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261116T073500Z
+DTEND:20261116T085500Z
+SUMMARY:Английский язык
+LOCATION:Главный корпус\, 215
+DESCRIPTION:Практика\nПреподаватель: Даниил Ле
+ снев\nЗанятие перенесено из аудитории 208.
+  Время не изменилось.\nВымышленные данны
+ е. Концепт\, не официальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-3@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261116T092500Z
+DTEND:20261116T104500Z
+SUMMARY:Международное право
+LOCATION:Главный корпус\, 402
+DESCRIPTION:Семинар\nПреподаватель: Аркадий Св
+ етлов\nВымышленные данные. Концепт\, не о
+ фициальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-4@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261117T060000Z
+DTEND:20261117T072000Z
+SUMMARY:Экономическая теория
+LOCATION:Главный корпус\, А-12
+DESCRIPTION:Лекция\nПреподаватель: Мирон Вельс
+ кий\nВымышленные данные. Концепт\, не офи
+ циальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-5@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261117T073500Z
+DTEND:20261117T085500Z
+SUMMARY:Второй иностранный язык
+LOCATION:Главный корпус\, 318
+DESCRIPTION:Практика\nПреподаватель: Лада Зори
+ на\nВымышленные данные. Концепт\, не офиц
+ иальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-6@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261117T092500Z
+DTEND:20261117T104500Z
+SUMMARY:Политическая география
+LOCATION:Главный корпус\, 210
+DESCRIPTION:Семинар\nПреподаватель: Есения Рад
+ ова\nВымышленные данные. Концепт\, не офи
+ циальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-7@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261118T073500Z
+DTEND:20261118T085500Z
+SUMMARY:История международных отношений
+LOCATION:Главный корпус\, 314
+DESCRIPTION:Семинар\nПреподаватель: Вера Лисов
+ ская\nВымышленные данные. Концепт\, не оф
+ ициальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-8@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261118T092500Z
+DTEND:20261118T104500Z
+SUMMARY:Английский язык
+LOCATION:Главный корпус\, 215
+DESCRIPTION:Практика\nПреподаватель: Даниил Ле
+ снев\nВымышленные данные. Концепт\, не оф
+ ициальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-9@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261119T060000Z
+DTEND:20261119T072000Z
+SUMMARY:Международное право
+LOCATION:Главный корпус\, А-08
+DESCRIPTION:Лекция\nПреподаватель: Аркадий Све
+ тлов\nВымышленные данные. Концепт\, не оф
+ ициальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-10@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261119T073500Z
+DTEND:20261119T085500Z
+SUMMARY:Экономическая теория
+LOCATION:Главный корпус\, 409
+DESCRIPTION:Семинар\nПреподаватель: Мирон Вель
+ ский\nВымышленные данные. Концепт\, не оф
+ ициальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-11@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261119T110000Z
+DTEND:20261119T122000Z
+SUMMARY:Второй иностранный язык
+LOCATION:Главный корпус\, 318
+DESCRIPTION:Практика\nПреподаватель: Лада Зори
+ на\nВымышленные данные. Концепт\, не офиц
+ иальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-12@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261120T073500Z
+DTEND:20261120T085500Z
+SUMMARY:Политическая география
+LOCATION:Главный корпус\, 210
+DESCRIPTION:Лекция\nПреподаватель: Есения Радо
+ ва\nВымышленные данные. Концепт\, не офиц
+ иальное расписание.
+END:VEVENT
+BEGIN:VEVENT
+UID:student-alisa-lesson-13@demo.orbita
+DTSTAMP:20261116T224558Z
+DTSTART:20261120T092500Z
+DTEND:20261120T104500Z
+SUMMARY:Английский язык
+LOCATION:Главный корпус\, 215
+DESCRIPTION:Практика\nПреподаватель: Даниил Ле
+ снев\nВымышленные данные. Концепт\, не оф
+ ициальное расписание.
+END:VEVENT
+END:VCALENDAR

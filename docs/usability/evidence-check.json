@@ -1,0 +1,355 @@
+{
+  "participants": 50,
+  "sessions": [
+    {
+      "session": "b01-p01",
+      "recordedSteps": 9,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b01-p02",
+      "recordedSteps": 9,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b01-p03",
+      "recordedSteps": 16,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b01-p04",
+      "recordedSteps": 15,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b01-p05",
+      "recordedSteps": 14,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b02-p01",
+      "recordedSteps": 5,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b02-p02",
+      "recordedSteps": 15,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 2
+    },
+    {
+      "session": "b02-p03",
+      "recordedSteps": 10,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b02-p04",
+      "recordedSteps": 16,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b02-p05",
+      "recordedSteps": 17,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b03-p01",
+      "recordedSteps": 9,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b03-p02",
+      "recordedSteps": 14,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b03-p03",
+      "recordedSteps": 14,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b03-p04",
+      "recordedSteps": 14,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b03-p05",
+      "recordedSteps": 10,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b04-p01",
+      "recordedSteps": 9,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b04-p02",
+      "recordedSteps": 14,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b04-p03",
+      "recordedSteps": 17,
+      "pageErrors": [],
+      "operatorErrors": 1,
+      "downloads": 0
+    },
+    {
+      "session": "b04-p04",
+      "recordedSteps": 10,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b04-p05",
+      "recordedSteps": 14,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b05-p01",
+      "recordedSteps": 15,
+      "pageErrors": [],
+      "operatorErrors": 1,
+      "downloads": 0
+    },
+    {
+      "session": "b05-p02",
+      "recordedSteps": 13,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b05-p03",
+      "recordedSteps": 14,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b05-p04",
+      "recordedSteps": 9,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b05-p05",
+      "recordedSteps": 15,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b06-p01",
+      "recordedSteps": 8,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b06-p02",
+      "recordedSteps": 7,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b06-p03",
+      "recordedSteps": 21,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b06-p04",
+      "recordedSteps": 17,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b06-p05",
+      "recordedSteps": 19,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b07-p01",
+      "recordedSteps": 10,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b07-p02",
+      "recordedSteps": 11,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b07-p03",
+      "recordedSteps": 15,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b07-p04",
+      "recordedSteps": 18,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b07-p05",
+      "recordedSteps": 16,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b08-p01",
+      "recordedSteps": 12,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b08-p02",
+      "recordedSteps": 12,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b08-p03",
+      "recordedSteps": 13,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b08-p04",
+      "recordedSteps": 25,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b08-p05",
+      "recordedSteps": 11,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b09-p01",
+      "recordedSteps": 27,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b09-p02",
+      "recordedSteps": 8,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b09-p03",
+      "recordedSteps": 16,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b09-p04",
+      "recordedSteps": 15,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b09-p05",
+      "recordedSteps": 16,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    },
+    {
+      "session": "b10-p01",
+      "recordedSteps": 17,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b10-p02",
+      "recordedSteps": 12,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b10-p03",
+      "recordedSteps": 6,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b10-p04",
+      "recordedSteps": 10,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 1
+    },
+    {
+      "session": "b10-p05",
+      "recordedSteps": 18,
+      "pageErrors": [],
+      "operatorErrors": 0,
+      "downloads": 0
+    }
+  ]
+}
