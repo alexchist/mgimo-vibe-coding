@@ -1,0 +1,56 @@
+[WebServer] (node:8511) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:8519) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/usability.spec.js:3:1 › a lesson keeps its original daily number when the schedule is filtered (6.6s)
+
+
+  1) tests/e2e/usability.spec.js:3:1 › a lesson keeps its original daily number when the schedule is filtered 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.ac-lesson-changed')
+    Expected substring: "2 пара"
+    Received string:    "10:3511:551 параПрактикаЕсть изменениеАнглийский языкДаниил Леснев208Ауд. 215· Главный корпусЗанятие перенесено из аудитории 208. Время не изменилось."
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" locator('.ac-lesson-changed') with timeout 5000ms
+      - waiting for locator('.ac-lesson-changed')
+        14 × locator resolved to <article class="ac-lesson ac-lesson-changed">…</article>
+           - unexpected value "10:3511:551 параПрактикаЕсть изменениеАнглийский языкДаниил Леснев208Ауд. 215· Главный корпусЗанятие перенесено из аудитории 208. Время не изменилось."
+
+
+      13 |   await changed.scrollIntoViewIfNeeded();
+      14 |   await page.screenshot({ path: testInfo.outputPath("filtered-schedule.png") });
+    > 15 |   await expect(changed).toContainText("2 пара");
+         |                         ^
+      16 |   await page.getByRole("button", { name: "Вся неделя", exact: true }).click();
+      17 |   await expect(changed).toContainText("2 пара");
+      18 | });
+        at /workspace/mgimo-vibe-coding/tests/e2e/usability.spec.js:15:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/usability-a-lesson-keeps-i-d8537-en-the-schedule-is-filtered/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/usability-a-lesson-keeps-i-d8537-en-the-schedule-is-filtered/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/usability-a-lesson-keeps-i-d8537-en-the-schedule-is-filtered/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/usability-a-lesson-keeps-i-d8537-en-the-schedule-is-filtered/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/e2e/usability.spec.js:3:1 › a lesson keeps its original daily number when the schedule is filtered 
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

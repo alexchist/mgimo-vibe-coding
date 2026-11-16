@@ -437,7 +437,7 @@ export function Campus({ notify, focusId, refresh }) {
                   <p className="campus-eyebrow">Твои планы</p>
                   <h2>
                     Мои бронирования{" "}
-                    <span className="campus-count">{active.length}</span>
+                    <span className="campus-count">{visible.length}</span>
                   </h2>
                 </div>
                 <div

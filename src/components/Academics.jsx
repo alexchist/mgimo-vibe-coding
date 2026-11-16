@@ -109,7 +109,7 @@ function exportCalendar(lessons) {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
-function Lesson({ lesson, index }) {
+function Lesson({ lesson, number }) {
   return (
     <article
       className={`ac-lesson ${lesson.changed ? "ac-lesson-changed" : ""}`}
@@ -117,7 +117,7 @@ function Lesson({ lesson, index }) {
       <div className="ac-lesson-time">
         <strong>{lesson.start}</strong>
         <span>{lesson.end}</span>
-        <span className="ac-lesson-number">{index + 1} пара</span>
+        <span className="ac-lesson-number">{number} пара</span>
       </div>
       <div className="ac-lesson-content">
         <div className="ac-lesson-top">
@@ -175,6 +175,16 @@ export function Schedule({ data, viewContext }) {
     () => [...(data.schedule || [])].sort(sortLessons),
     [data.schedule],
   );
+  const lessonNumbers = useMemo(() => {
+    const perDay = new Map();
+    return new Map(
+      lessons.map((lesson) => {
+        const number = (perDay.get(lesson.day) || 0) + 1;
+        perDay.set(lesson.day, number);
+        return [lesson.id, number];
+      }),
+    );
+  }, [lessons]);
   const filtered = lessons.filter(
     (lesson) =>
       (!changedOnly || lesson.changed) &&
@@ -362,8 +372,12 @@ export function Schedule({ data, viewContext }) {
                 </span>
               </div>
               <div className="ac-lessons">
-                {visible.map((lesson, index) => (
-                  <Lesson key={lesson.id} lesson={lesson} index={index} />
+                {visible.map((lesson) => (
+                  <Lesson
+                    key={lesson.id}
+                    lesson={lesson}
+                    number={lessonNumbers.get(lesson.id)}
+                  />
                 ))}
               </div>
             </>
@@ -380,11 +394,11 @@ export function Schedule({ data, viewContext }) {
                       <span>{dateLabel(dates[index])}</span>
                     </div>
                     <div className="ac-lessons">
-                      {dayLessons.map((lesson, lessonIndex) => (
+                      {dayLessons.map((lesson) => (
                         <Lesson
                           key={lesson.id}
                           lesson={lesson}
-                          index={lessonIndex}
+                          number={lessonNumbers.get(lesson.id)}
                         />
                       ))}
                     </div>

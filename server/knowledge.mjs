@@ -45,11 +45,18 @@ function terms(text) {
       if (/^стипенд/.test(word)) return "стипенд";
       if (word.length < 5) return word;
       return word.replace(
-        /(иями|ями|ами|ого|его|ему|ому|иях|ать|ить|ять|ах|ях|ий|ый|ой|ая|яя|ое|ее|ые|ие|ов|ев|ам|ям|ом|ем|ую|юю|а|я|ы|и|у|ю|е|о)$/u,
+        /(иями|ями|ами|ого|его|ему|ому|иях|ать|ить|ять|ах|ях|ий|ый|ой|ая|яя|ое|ее|ые|ие|ов|ев|ам|ям|ом|ем|ую|юю|а|я|ы|и|у|ю|е|о|ь)$/u,
         "",
       );
     });
 }
+// These words describe how to find an answer, rather than its subject. Keep them
+// for ranking, but do not let a date or lookup verb substitute for the topic.
+const queryContextTerms = new Set(
+  terms(
+    "узнать узнаю узнай найти найди покажи показать расскажи рассказать дата даты дату датой срок сроки время времени сколько день дней дня правила правило порядок документ документы",
+  ),
+);
 function chunksFor(text) {
   const sections = [];
   let heading = "";
@@ -511,6 +518,18 @@ export function installKnowledge(app, db, authenticate, options = {}) {
         corpus.filter((entry) => entry.words.includes(term)).length,
       ]),
     );
+    const topicTerms = originalTerms.filter(
+      (term) => !queryContextTerms.has(term),
+    );
+    const substantiveTerms = topicTerms.length ? topicTerms : originalTerms;
+    const topicMatches = (words) =>
+      substantiveTerms.filter((term) => words.includes(term)).length;
+    const bestCoverage = corpus.reduce(
+      (best, entry) => Math.max(best, topicMatches(entry.words)),
+      0,
+    );
+    if (!bestCoverage)
+      return { query: query.trim(), sources: [], hasResults: false };
     const ranked = corpus
       .map(({ row, words, titleWords }) => {
         let score = 0;
@@ -533,8 +552,11 @@ export function installKnowledge(app, db, authenticate, options = {}) {
         }
         // Keep a weak single-word match from dominating a focused multi-term query.
         score *= 0.5 + matched / queryTerms.length;
-        // A temporal hint alone is not evidence for an otherwise unrelated query.
-        if (!originalTerms.some((term) => words.includes(term))) score = 0;
+        // A contextual or broad term alone is not evidence for a focused question.
+        // Prefer clauses covering the question together, instead of filling the
+        // remaining slots with weaker single-word matches. If different topics
+        // only occur separately, their equal coverage keeps both discoverable.
+        if (topicMatches(words) < bestCoverage) score = 0;
         score *=
           1 +
           queryTerms.filter((term) => titleWords.includes(term)).length /
