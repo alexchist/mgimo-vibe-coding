@@ -16,6 +16,7 @@ import {
   TrendingUp,
   UserRound,
 } from "lucide-react";
+import { weightedCurrentScore } from "../academic-metrics";
 import "./academics.css";
 
 const weekdays = [
@@ -605,16 +606,7 @@ export function Grades({ data, viewContext }) {
     (sum, grade) => sum + Number(grade.credits || 0),
     0,
   );
-  const average = grades.length
-    ? Math.round(
-        credits > 0
-          ? grades.reduce(
-              (sum, grade) => sum + grade.score * grade.credits,
-              0,
-            ) / credits
-          : grades.reduce((sum, grade) => sum + grade.score, 0) / grades.length,
-      )
-    : 0;
+  const average = weightedCurrentScore(grades);
   const attendance = grades.length
     ? Math.round(
         grades.reduce((sum, grade) => sum + grade.attendance, 0) /

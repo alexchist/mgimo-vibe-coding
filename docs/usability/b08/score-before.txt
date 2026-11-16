@@ -1,0 +1,56 @@
+[WebServer] (node:35504) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:35512) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/usability.spec.js:3:1 › dashboard and grades show the same weighted current score (6.1s)
+
+
+  1) tests/e2e/usability.spec.js:3:1 › dashboard and grades show the same weighted current score ───
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.semester-card .score-ring strong')
+    Expected: "77"
+    Received: "78"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" locator('.semester-card .score-ring strong') with timeout 5000ms
+      - waiting for locator('.semester-card .score-ring strong')
+        12 × locator resolved to <strong>78</strong>
+           - unexpected value "78"
+
+
+       7 |   await page.getByRole("button", { name: "Войти в кабинет", exact: true }).click();
+       8 |   const summary = page.locator(".semester-card .score-ring strong");
+    >  9 |   await expect(summary).toHaveText("77");
+         |                         ^
+      10 |   await page.getByRole("button", { name: "Открыть успеваемость", exact: true }).click();
+      11 |   await expect(page.locator(".ac-score-ring strong")).toHaveText("77");
+      12 | });
+        at /workspace/mgimo-vibe-coding/tests/e2e/usability.spec.js:9:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/usability-dashboard-and-gr-621aa-same-weighted-current-score/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/usability-dashboard-and-gr-621aa-same-weighted-current-score/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/usability-dashboard-and-gr-621aa-same-weighted-current-score/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/usability-dashboard-and-gr-621aa-same-weighted-current-score/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/e2e/usability.spec.js:3:1 › dashboard and grades show the same weighted current score ────
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

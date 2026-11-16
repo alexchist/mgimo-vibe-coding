@@ -1,5 +1,22 @@
 import { test, expect } from "@playwright/test";
 
+test("dashboard and grades show the same weighted current score", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Логин", { exact: true }).fill("mark@demo.orbita");
+  await page.getByLabel("Пароль", { exact: true }).fill("Orbita2026!");
+  await page
+    .getByRole("button", { name: "Войти в кабинет", exact: true })
+    .click();
+  const summary = page.locator(".semester-card .score-ring strong");
+  await expect(summary).toHaveText("77");
+  await page
+    .getByRole("button", { name: "Открыть успеваемость", exact: true })
+    .click();
+  await expect(page.locator(".ac-score-ring strong")).toHaveText("77");
+});
+
 test("a custom goal and fractional forecast stay consistent without changing grades", async ({
   page,
 }) => {

@@ -330,6 +330,10 @@
   flex-shrink: 0;
   transition: transform 0.2s;
 }
+.svc-page .svc-request-toggle:focus-visible {
+  outline: 3px solid #16796e;
+  outline-offset: -4px;
+}
 .svc-rotated {
   transform: rotate(180deg);
 }

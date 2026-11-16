@@ -29,6 +29,7 @@ import {
   X,
 } from "lucide-react";
 import api from "./api";
+import { weightedCurrentScore } from "./academic-metrics";
 import { Schedule, Grades } from "./components/Academics";
 import { Planner } from "./components/Planner";
 import { Requests, Notifications, Profile } from "./components/Services";
@@ -351,11 +352,7 @@ function Dashboard({ data, onNavigate }) {
   const next = today[0];
   const changed = today.find((item) => item.changed);
   const grades = data.grades || [];
-  const mean = grades.length
-    ? Math.round(
-        grades.reduce((sum, item) => sum + item.score, 0) / grades.length,
-      )
-    : 0;
+  const mean = weightedCurrentScore(grades);
   const attendance = grades.length
     ? Math.round(
         grades.reduce((sum, item) => sum + item.attendance, 0) / grades.length,
@@ -576,7 +573,7 @@ function Dashboard({ data, onNavigate }) {
               </div>
             </div>
             <div className="semester-footer">
-              Оценки — ориентир, а не повод для тревоги.
+              Средневзвешенный балл с учётом зачётных единиц.
             </div>
           </section>
           {readyRequest && (
