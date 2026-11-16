@@ -25,6 +25,21 @@
   font-size: 12px;
   white-space: nowrap;
 }
+.svc-request-heading-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+#my-requests-title {
+  scroll-margin-top: 88px;
+}
+#my-requests-title:focus {
+  outline: 3px solid #88c8b4;
+  outline-offset: 5px;
+  border-radius: 3px;
+}
 .svc-request-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);

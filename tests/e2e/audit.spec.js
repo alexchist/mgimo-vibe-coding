@@ -184,6 +184,11 @@ test("archiving keeps the document, survives reload and opens from its notificat
   await page.setViewportSize({ width: 360, height: 800 });
   const session = await signIn(page);
   const request = await readyRequest(page, session);
+  await page.goto("/#requests");
+  await page.getByRole("button", { name: "Мои заявки", exact: true }).click();
+  const listHeading = page.getByRole("heading", { name: /^Мои заявки/ });
+  await expect(listHeading).toBeFocused();
+  await expect(listHeading).toBeInViewport({ ratio: 1 });
   await page.goto(`/#requests/${request.id}`);
   await page.getByRole("button", { name: "В архив", exact: true }).click();
   await expect(

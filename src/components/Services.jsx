@@ -211,7 +211,7 @@ function RequestDetails({ request, busy, onAdvance, onArchive }) {
       {request.archived ? (
         <p className="svc-small-note">
           В архиве. История и документ сохранены; заявка не занимает место в
-          лимите.
+          лимите. Возврат в рабочий список в демо не предусмотрен.
         </p>
       ) : (
         request.status === "ready" && (
@@ -221,7 +221,7 @@ function RequestDetails({ request, busy, onAdvance, onArchive }) {
                 <p>
                   Перенести заявку в архив общего демоаккаунта? История и
                   документ останутся во вкладке «Архив», освободится место для
-                  новой заявки.
+                  новой заявки. Возврат в рабочий список в демо не предусмотрен.
                 </p>
                 <button
                   className="button secondary"
@@ -269,6 +269,7 @@ export function Requests({ data, refresh, notify, focusId }) {
   const [filter, setFilter] = useState("all");
   const submittingRef = useRef(false);
   const formRef = useRef(null);
+  const listTitleRef = useRef(null);
   const idempotency = useRef(null);
   const requests = [
     ...(data.requests || []).map((item) => requestUpdates[item.id] || item),
@@ -432,10 +433,23 @@ export function Requests({ data, refresh, notify, focusId }) {
             Закажите нужное здесь. Мы покажем каждый этап.
           </p>
         </div>
-        <span className="svc-private-label">
-          <LockKeyhole size={14} aria-hidden="true" />
-          Только ваши заявки
-        </span>
+        <div className="svc-request-heading-actions">
+          <button
+            type="button"
+            className="button secondary"
+            onClick={() => {
+              listTitleRef.current?.focus({ preventScroll: true });
+              listTitleRef.current?.scrollIntoView({ block: "start" });
+            }}
+          >
+            Мои заявки
+            <ArrowRight size={16} aria-hidden="true" />
+          </button>
+          <span className="svc-private-label">
+            <LockKeyhole size={14} aria-hidden="true" />
+            Только ваши заявки
+          </span>
+        </div>
       </div>
       <div className="svc-request-layout">
         <section
@@ -575,7 +589,7 @@ export function Requests({ data, refresh, notify, focusId }) {
           aria-labelledby="my-requests-title"
         >
           <div className="svc-list-heading">
-            <h2 id="my-requests-title">
+            <h2 id="my-requests-title" ref={listTitleRef} tabIndex={-1}>
               Мои заявки <span>{requests.length}</span>
             </h2>
             <span className="svc-eyebrow">Всё под контролем</span>

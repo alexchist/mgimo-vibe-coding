@@ -367,6 +367,8 @@ export function Campus({ notify, focusId, refresh }) {
                   <p className="campus-muted campus-slot-help">
                     Показаны интервалы на {duration} минут. Серый слот занят или
                     не вмещает выбранную длительность.
+                    {" "}Доступность относится к помещению. Сверьте время со своим{" "}
+                    <a href="#schedule/week">расписанием</a> и остальными участниками.
                   </p>
                   {slotsLoading && (
                     <p className="campus-loading" role="status">

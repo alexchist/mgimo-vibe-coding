@@ -1006,7 +1006,8 @@
   font-weight: 650;
 }
 .ac-session-score small {
-  font-size: 8px;
+  font-size: 12px;
+  line-height: 1.4;
   color: #5f7164;
   font-weight: 400;
 }
@@ -1270,7 +1271,7 @@
     gap: 11px;
   }
   .ac-session-score small {
-    max-width: 45px;
+    max-width: 85px;
     text-align: right;
     line-height: 1.4;
   }
@@ -1347,7 +1348,7 @@
     align-self: center;
   }
   .ac-session-score small {
-    font-size: 10px;
+    font-size: 12px;
   }
   .ac-summary-small > strong {
     flex-wrap: wrap;
