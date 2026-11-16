@@ -282,6 +282,11 @@
   background: #fffcf6;
   border-color: #ebd8b8;
 }
+.ac-lesson:focus {
+  outline: 2px solid #31577d;
+  outline-offset: 3px;
+  scroll-margin-block: 90px;
+}
 .ac-lesson-time {
   display: flex;
   flex-direction: column;

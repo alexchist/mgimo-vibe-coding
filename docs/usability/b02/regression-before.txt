@@ -1,0 +1,56 @@
+[WebServer] (node:13502) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:13510) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/usability.spec.js:3:1 › the mobile room-change link reveals and focuses the actual lesson (8.0s)
+
+
+  1) tests/e2e/usability.spec.js:3:1 › the mobile room-change link reveals and focuses the actual lesson 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('.ac-lesson-changed')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" locator('.ac-lesson-changed') with timeout 5000ms
+      - waiting for locator('.ac-lesson-changed')
+        12 × locator resolved to <article class="ac-lesson ac-lesson-changed">…</article>
+           - unexpected value "inactive"
+
+
+      14 |   await page.getByRole("button", { name: /Изменение аудитории/ }).click();
+      15 |   const lesson = page.locator(".ac-lesson-changed");
+    > 16 |   await expect(lesson).toBeFocused();
+         |                        ^
+      17 |   await expect(lesson).toContainText("208");
+      18 |   await expect(lesson).toContainText("215");
+      19 |   const box = await lesson.boundingBox();
+        at /workspace/mgimo-vibe-coding/tests/e2e/usability.spec.js:16:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/usability-the-mobile-room--2422b-d-focuses-the-actual-lesson/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/usability-the-mobile-room--2422b-d-focuses-the-actual-lesson/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/usability-the-mobile-room--2422b-d-focuses-the-actual-lesson/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/usability-the-mobile-room--2422b-d-focuses-the-actual-lesson/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/e2e/usability.spec.js:3:1 › the mobile room-change link reveals and focuses the actual lesson 
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

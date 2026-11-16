@@ -4,7 +4,7 @@
 
 **Не читайте исходники, тесты, README, другие отчёты или задания участников. Не делайте запросов к API приложения, не пишите JavaScript/Playwright, не используйте DevTools и не общайтесь с другими агентами.** Читать разрешено только эту инструкцию и видимый браузер. Изменять можно только свой `report.md` через apply_patch. Никаких иных shell-команд, кроме браузерных команд ниже и первого чтения этой инструкции.
 
-Сессия `SESSION` уже открыта. Выполняйте действия через `functions.exec` → `tools.exec_command`, workdir `/workspace/mgimo-vibe-coding`, login:false. Это пульт настоящего Chromium, а не программирование сценария:
+Сессия уже открыта. **В каждой команде замените слово `SESSION` своим идентификатором из задания, например `b02-p01`; буквально `SESSION` передавать нельзя.** Выполняйте действия через `functions.exec` → `tools.exec_command`, workdir `/workspace/mgimo-vibe-coding`, login:false. Это пульт настоящего Chromium, а не программирование сценария:
 
 ```text
 node scripts/usability-browser.mjs SESSION snapshot

@@ -409,7 +409,7 @@ function Dashboard({ data, onNavigate }) {
             <p>Посмотрите другие дни демо-недели или займитесь личным планом.</p>
             <button className="button" onClick={() => onNavigate("schedule", "week")}>Посмотреть неделю <ArrowRight size={17} /></button>
           </>}
-          {changed && <button className="day-change" onClick={() => onNavigate("schedule")}>
+          {changed && <button className="day-change" onClick={() => onNavigate("schedule", `lesson-${changed.id}`)}>
             <span><strong>Изменение аудитории</strong><br />{changed.subject} · {changed.start} · теперь {changed.room}</span><ArrowRight size={18} />
           </button>}
         </section>

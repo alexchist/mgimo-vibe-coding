@@ -14,7 +14,9 @@ if (sessionId && sessionId !== "serve") {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionId, action, ...JSON.parse(raw) }),
   });
-  console.log(await response.text());
+  const output = await response.text();
+  console.log(output);
+  if (!response.ok || JSON.parse(output).error) process.exitCode = 1;
 } else {
   // Do not load .env or enable external services in disposable usability instances.
   for (const key of [
@@ -34,6 +36,20 @@ if (sessionId && sessionId !== "serve") {
     args: ["--no-sandbox"],
   });
   const sessions = new Map();
+  let stopping = false;
+  async function shutdown() {
+    if (stopping) return;
+    stopping = true;
+    for (const s of sessions.values()) {
+      await s.context.tracing
+        .stop({ path: path.join(s.dir, "trace.zip") })
+        .catch(() => {});
+    }
+    await browser.close().catch(() => {});
+    process.exit(0);
+  }
+  process.once("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
   let nextPort = 3201;
   function target(page, input) {
     let locator;
@@ -96,6 +112,7 @@ if (sessionId && sessionId !== "serve") {
         count: 0,
         downloads: [],
         errors: [],
+        actionErrors: [],
       };
       sessions.set(id, s);
       page.on("pageerror", (error) => {
@@ -115,7 +132,12 @@ if (sessionId && sessionId !== "serve") {
       await writeFile(
         path.join(s.dir, "summary.json"),
         JSON.stringify(
-          { actions: s.count, errors: s.errors, downloads: s.downloads },
+          {
+            actions: s.count,
+            pageErrors: s.errors,
+            operatorErrors: s.actionErrors,
+            downloads: s.downloads,
+          },
           null,
           2,
         ),
@@ -128,7 +150,8 @@ if (sessionId && sessionId !== "serve") {
         finished: true,
         directory: s.dir,
         actions: s.count,
-        errors: s.errors,
+        pageErrors: s.errors,
+        operatorErrors: s.actionErrors,
         downloads: s.downloads,
       };
     }
@@ -139,9 +162,11 @@ if (sessionId && sessionId !== "serve") {
       else if (action === "fill") await target(page, input).fill(input.value);
       else if (action === "select")
         await target(page, input).selectOption({ label: input.value });
-      else if (action === "check")
-        await target(page, input).setChecked(input.checked !== false);
-      else if (action === "press") {
+      else if (action === "check") {
+        const checkbox = target(page, input);
+        if ((await checkbox.isChecked()) !== (input.checked !== false))
+          await checkbox.click();
+      } else if (action === "press") {
         if (input.role || input.label || input.placeholder || input.text)
           await target(page, input).press(input.key);
         else await page.keyboard.press(input.key);
@@ -158,6 +183,7 @@ if (sessionId && sessionId !== "serve") {
     }
     const snapshot = await page.locator("body").ariaSnapshot();
     const step = String(++s.count).padStart(3, "0");
+    if (error) s.actionErrors.push({ step, action, error });
     const screenshot = path.join(s.dir, `${step}.jpg`);
     await page.screenshot({
       path: screenshot,

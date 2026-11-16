@@ -172,7 +172,7 @@ export function Planner({ data, refresh, notify, focusId }) {
           : [...current, result.item],
       );
       setTitle("");
-      setFilter("active");
+      setFilter((current) => (current === "done" ? "active" : current));
       setFocused(result.item.id);
       notify?.("Задача добавлена в ваш план");
       await reload();

@@ -525,7 +525,13 @@ export function installAssistant(app, db, authenticate, dependencies = {}) {
         record,
       );
     }
+    // Scholarship itself is a policy topic, not a request for a certificate.
+    // Explicit creation/follow-up has already been handled above; retain the
+    // familiar requests guidance when the user actually mentions a document.
+    const scholarshipPolicy =
+      /стипенд/.test(query) && !/справ|выписк|заявлен|документ/.test(query);
     if (
+      scholarshipPolicy ||
       /приказ|регламент|положени|правил|услови|порядок|как отменить|когда опла|срок.*оплат/.test(
         query,
       )

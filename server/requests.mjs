@@ -6,6 +6,12 @@ export const REQUEST_TYPES = {
   transcript: "Выписка об успеваемости",
   leave: "Заявление на академический отпуск",
 };
+const moscowCalendar = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Moscow",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 const fail = (status, message) => {
   throw Object.assign(new Error(message), { status, expose: true });
 };
@@ -62,7 +68,14 @@ export function createRequestService(db, { notify }) {
         "Достигнут лимит в 200 заявок вне архива. Перенесите готовые заявки в архив; незавершённые можно довести до готовности кнопкой «Демо: следующий этап».",
       );
     const now = new Date();
-    const estimated = new Date(now);
+    const calendar = Object.fromEntries(
+      moscowCalendar.formatToParts(now).map(({ type, value }) => [type, value]),
+    );
+    // A date-only calendar anchor, not a conversion of the stored UTC timestamp.
+    // The demo counts Monday–Friday; it does not model an official holiday calendar.
+    const estimated = new Date(
+      `${calendar.year}-${calendar.month}-${calendar.day}T00:00:00.000Z`,
+    );
     let businessDays = 0;
     while (businessDays < 3) {
       estimated.setUTCDate(estimated.getUTCDate() + 1);

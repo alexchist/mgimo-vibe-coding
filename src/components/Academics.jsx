@@ -113,6 +113,8 @@ function Lesson({ lesson, number }) {
   return (
     <article
       className={`ac-lesson ${lesson.changed ? "ac-lesson-changed" : ""}`}
+      id={`schedule-item-${lesson.id}`}
+      tabIndex={-1}
     >
       <div className="ac-lesson-time">
         <strong>{lesson.start}</strong>
@@ -163,14 +165,33 @@ export function Schedule({ data, viewContext }) {
   const [search, setSearch] = useState("");
   const [changedOnly, setChangedOnly] = useState(false);
   const [exported, setExported] = useState(false);
+  const [focusTarget, setFocusTarget] = useState(null);
   useEffect(() => {
+    const selectedLesson = viewContext?.startsWith("lesson-")
+      ? data.schedule?.find((lesson) => lesson.id === viewContext.slice(7))
+      : null;
     setView(viewContext === "week" ? "week" : "today");
     setDay(
-      /^day-[1-7]$/.test(viewContext || "") ? Number(viewContext.slice(-1)) : 1,
+      selectedLesson?.day ||
+        (/^day-[1-7]$/.test(viewContext || "")
+          ? Number(viewContext.slice(-1))
+          : 1),
     );
     setSearch("");
     setChangedOnly(false);
-  }, [viewContext]);
+    setFocusTarget(selectedLesson?.id || null);
+  }, [viewContext, data.schedule]);
+  useEffect(() => {
+    if (!focusTarget) return;
+    const node = document.getElementById(`schedule-item-${focusTarget}`);
+    if (!node) return;
+    const frame = requestAnimationFrame(() => {
+      node.focus({ preventScroll: true });
+      node.scrollIntoView({ block: "center", behavior: "instant" });
+      setFocusTarget(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusTarget, view, day, changedOnly]);
   const lessons = useMemo(
     () => [...(data.schedule || [])].sort(sortLessons),
     [data.schedule],
@@ -250,6 +271,10 @@ export function Schedule({ data, viewContext }) {
             onClick={() => {
               setChangedOnly(true);
               setView("week");
+              setSearch("");
+              setFocusTarget(
+                lessons.find((lesson) => lesson.changed)?.id || null,
+              );
             }}
           >
             Показать
