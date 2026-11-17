@@ -233,6 +233,17 @@ test("archiving keeps the document, survives reload and opens from its notificat
   await expect(
     page.getByRole("link", { name: "Скачать демодокумент", exact: true }),
   ).toBeVisible();
+  // Visibility does not mean the page's entrance animation has finished.
+  await page.evaluate(async () => {
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter(
+          (animation) => animation.effect?.getTiming().iterations !== Infinity,
+        )
+        .map((animation) => animation.finished.catch(() => {})),
+    );
+  });
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
