@@ -23,6 +23,8 @@ export default defineConfig({
       TRUST_PROXY: "0",
       PAYMENTS_MODE: "demo",
       ALLOW_REAL_CHANNEL_LINKING: "false",
+      GIGACHAT_CREDENTIALS: "",
+      GIGACHAT_SCOPE: "",
       YANDEX_API_KEY: "",
       YANDEX_FOLDER_ID: "",
       YANDEX_MODEL_URI: "",

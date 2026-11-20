@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -669,10 +670,45 @@ export default function App() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [chatDraft, setChatDraft] = useState("");
+  const [chatVisited, setChatVisited] = useState(false);
+  const [assistantStatus, setAssistantStatus] = useState(null);
+  const [assistantStatusError, setAssistantStatusError] = useState("");
   const toastTimer = useRef(null);
   const searchRef = useRef(null);
   const sidebarRef = useRef(null);
   const authGeneration = useRef(0);
+  const assistantOpen = phase === "ready" && route === "assistant";
+  useEffect(() => {
+    if (phase !== "ready") {
+      setChatVisited(false);
+      setChatDraft("");
+      setQuery("");
+      setSearchFocused(false);
+      setAssistantStatus(null);
+      setAssistantStatusError("");
+      return;
+    }
+    if (assistantOpen) setChatVisited(true);
+    let active = true;
+    api("/assistant/status").then(
+      (status) => {
+        if (active) {
+          setAssistantStatus(status);
+          setAssistantStatusError("");
+        }
+      },
+      (error) => {
+        if (active) {
+          setAssistantStatus(null);
+          setAssistantStatusError(error.message);
+        }
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [phase, assistantOpen]);
   async function refresh(generation = authGeneration.current) {
     const result = await api("/bootstrap");
     if (generation === authGeneration.current) {
@@ -772,21 +808,20 @@ export default function App() {
   }, [mobileOpen]);
   function navigate(id, focusId = null) {
     if (!navigation.some((item) => item.id === id)) id = "dashboard";
-    window.location.hash = focusId
-      ? `${id}/${encodeURIComponent(focusId)}`
-      : id;
-    setRoute(id);
-    setRouteContext(focusId);
-    setMobileOpen(false);
-    setQuery("");
-    setSearchFocused(false);
+    const hash = focusId ? `#${id}/${encodeURIComponent(focusId)}` : `#${id}`;
+    // This transition handles its own state. A second, delayed hashchange
+    // could clear a search the user has already started on the new page.
+    if (window.location.hash !== hash) window.history.pushState(null, "", hash);
     window.scrollTo(0, 0);
-    if (!focusId) {
-      requestAnimationFrame(() => {
-        if (window.location.hash === `#${id}`)
-          document.getElementById("main-content")?.focus({ preventScroll: true });
-      });
-    }
+    flushSync(() => {
+      setRoute(id);
+      setRouteContext(focusId);
+      setMobileOpen(false);
+      setQuery("");
+      setSearchFocused(false);
+    });
+    if (!focusId)
+      document.getElementById("main-content")?.focus({ preventScroll: true });
   }
   function notify(message) {
     setToast(message);
@@ -836,6 +871,11 @@ export default function App() {
     return <Login onLogin={() => refresh(++authGeneration.current)} />;
   const unread = data.notifications.filter((item) => !item.read).length;
   const activeItem = navigation.find((item) => item.id === route);
+  const chatProvider = assistantStatus?.configured && assistantStatus.provider;
+  function openQuestion() {
+    setChatDraft(query.trim().slice(0, 2000));
+    navigate("assistant");
+  }
   const queryWords = searchWords(query);
   const searchResults = navigation.filter((item) => {
     const words = searchWords(`${item.title} ${item.hint} ${item.searchTerms || ""}`);
@@ -938,7 +978,8 @@ export default function App() {
             <strong>Чуть меньше забот</strong>
             <p>Найдём нужное и подскажем следующий шаг.</p>
             <span>
-              Открыть навигатор <ArrowRight size={14} />
+              {chatProvider ? `Спросить ${chatProvider}` : "Открыть навигатор"}
+              <ArrowRight size={14} />
             </span>
           </button>
           <div className="sidebar-profile">
@@ -1010,8 +1051,10 @@ export default function App() {
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") setSearchFocused(false);
-                  if (e.key === "Enter" && searchResults[0])
-                    navigate(searchResults[0].id);
+                  if (e.key === "Enter") {
+                    if (searchResults[0]) navigate(searchResults[0].id);
+                    else if (query.trim()) openQuestion();
+                  }
                 }}
               />
               {searchFocused && (
@@ -1033,6 +1076,13 @@ export default function App() {
                     <p>Ничего не нашли. Попробуйте «справки» или «оценки».</p>
                   )}
                   {searchResults.length > 0 && <p>Enter откроет первый раздел.</p>}
+                  {query.trim() && (
+                    <button onMouseDown={(e) => e.preventDefault()} onClick={openQuestion}>
+                      <Sparkles size={16} />
+                      {chatProvider ? `Открыть вопрос в ${chatProvider}` : "Открыть вопрос в навигаторе"}
+                      <ChevronRight size={14} />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1102,13 +1152,20 @@ export default function App() {
           )}
           {route === "connections" && <Connections notify={notify} />}
           {route === "profile" && <Profile data={data} />}{" "}
-          {route === "assistant" && (
-            <AIAssistant
-              data={data}
-              onNavigate={navigate}
-              refresh={refresh}
-              notify={notify}
-            />
+          {(assistantOpen || chatVisited) && (
+            <div hidden={!assistantOpen}>
+              <AIAssistant
+                active={assistantOpen}
+                data={data}
+                status={assistantStatus}
+                statusError={assistantStatusError}
+                query={chatDraft}
+                setQuery={setChatDraft}
+                onNavigate={navigate}
+                refresh={refresh}
+                notify={notify}
+              />
+            </div>
           )}
         </main>
       </div>

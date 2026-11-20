@@ -481,7 +481,9 @@ export function installKnowledge(app, db, authenticate, options = {}) {
     );
     return { ok: true };
   }
-  function search(userId, query, { limit = 5 } = {}) {
+  function search(userId, query, { limit = 5, scope = "accessible" } = {}) {
+    if (!["accessible", "shared", "private"].includes(scope))
+      throw fail(400, "Неизвестная область поиска.");
     if (
       typeof query !== "string" ||
       query.trim().length < 2 ||
@@ -501,9 +503,10 @@ export function installKnowledge(app, db, authenticate, options = {}) {
       .prepare(
         `SELECT c.id AS chunk_id,c.section,c.content AS quote,d.id AS document_id,d.title,d.fictional,d.version,d.updated_at
       FROM knowledge_chunks c JOIN knowledge_documents d ON d.id=c.document_id
-      WHERE d.owner_id IS NULL OR d.owner_id=?`,
+      WHERE (d.owner_id IS NULL AND ? IN ('accessible','shared'))
+         OR (d.owner_id = ? AND ? IN ('accessible','private'))`,
       )
-      .all(userId);
+      .all(scope, userId, scope);
     const corpus = rows.map((row) => ({
       row,
       words: terms(row.quote),

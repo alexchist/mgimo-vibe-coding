@@ -165,9 +165,10 @@ function ActionCard({
   );
 }
 
-export function AIAssistant({ data, onNavigate, notify, refresh }) {
-  const [status, setStatus] = useState(null);
-  const [statusError, setStatusError] = useState("");
+export function AIAssistant({
+  active, data, status, statusError, query, setQuery, onNavigate, notify, refresh,
+}) {
+  const [restoreError, setRestoreError] = useState("");
   const [messages, setMessages] = useState([]);
   const [restoredActions, setRestoredActions] = useState([]);
   const [results, setResults] = useState({});
@@ -175,7 +176,6 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
   const [actionStates, setActionStates] = useState({});
   const [confirming, setConfirming] = useState("");
   const [conversationId, setConversationId] = useState(undefined);
-  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const lock = useRef(false);
@@ -185,28 +185,30 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
 
   useEffect(() => {
     alive.current = true;
-    let active = true;
-    Promise.allSettled([
-      api("/assistant/status"),
-      api("/assistant/actions"),
-    ]).then(([state, actions]) => {
-      if (!active) return;
-      if (state.status === "fulfilled") setStatus(state.value);
-      else setStatusError(state.reason.message);
-      if (actions.status === "fulfilled")
-        setRestoredActions(actions.value.actions);
-      else
-        setStatusError(
-          (current) =>
-            current ||
-            "Не удалось загрузить ожидающие подтверждения действия. Обновите раздел.",
-        );
-    });
     return () => {
-      active = false;
       alive.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!active) return;
+    let current = true;
+    api("/assistant/actions").then(
+      (result) => {
+        if (current) {
+          setRestoredActions(result.actions);
+          setRestoreError("");
+        }
+      },
+      () => {
+        if (current)
+          setRestoreError("Не удалось загрузить ожидающие подтверждения действия. Обновите раздел.");
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [active]);
 
   function navigate(route, focusId) {
     if (onNavigate) onNavigate(route, focusId);
@@ -215,7 +217,7 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
         ? `${route}/${encodeURIComponent(focusId)}`
         : route;
   }
-  async function ask(text) {
+  async function ask(text, shareQuestion = false) {
     if (lock.current) return;
     const value = text.trim();
     if (!value) {
@@ -228,15 +230,11 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
     setError("");
     setQuery(value);
     try {
-      const history = messages.slice(-6).flatMap((item) => [
-        { role: "user", content: item.question.slice(0, 2000) },
-        { role: "assistant", content: item.answer.reply.slice(0, 2000) },
-      ]);
       const answer = await api("/assistant/chat", {
         method: "POST",
         body: {
           message: value,
-          history,
+          shareQuestion: status?.configured === true && shareQuestion,
           ...(conversationId ? { conversationId } : {}),
         },
       });
@@ -246,7 +244,7 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
         { id: crypto.randomUUID(), question: value, answer },
       ]);
       setConversationId(answer.conversationId);
-      setQuery("");
+      setQuery((draft) => draft === value ? "" : draft);
       inputRef.current?.focus();
     } catch (cause) {
       if (!alive.current) return;
@@ -311,7 +309,7 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
         [action.id]: response.action,
       }));
       notify?.("Выбранная подготовка отменена.");
-      if (openForm) navigate("requests");
+      if (openForm && window.location.hash.split("/")[0] === "#assistant") navigate("requests");
     } catch (cause) {
       if (alive.current)
         setActionErrors((current) => ({
@@ -374,7 +372,7 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
             <strong>
               {status
                 ? status.configured
-                  ? `Yandex AI${status.model ? ` · ${status.model}` : ""}`
+                  ? [status.provider, status.model !== status.provider && status.model].filter(Boolean).join(" · ")
                   : "Локальный демопомощник"
                 : "Проверяем режим помощника…"}
             </strong>
@@ -384,9 +382,9 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
             </p>
           </div>
         </div>
-        {statusError && (
+        {(statusError || restoreError) && (
           <p className="ai-error" role="alert">
-            {statusError}
+            {[statusError, restoreError].filter(Boolean).join(" ")}
           </p>
         )}
         <div className="ai-prompts" role="group" aria-label="Примеры вопросов">
@@ -395,7 +393,11 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
               type="button"
               key={prompt}
               disabled={loading}
-              onClick={() => ask(prompt)}
+              onClick={() => {
+                if (!status?.configured) return ask(prompt);
+                setQuery(prompt);
+                inputRef.current?.focus();
+              }}
             >
               {prompt}
               <ArrowRight size={15} aria-hidden="true" />
@@ -434,9 +436,11 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
                 <Compass size={19} aria-hidden="true" />
                 <div className="ai-answer-content">
                   <span className="ai-mode">
-                    {message.answer.mode === "yandex"
-                      ? "С помощью Yandex AI"
-                      : "Локальный ответ"}
+                    {message.answer.mode === "gigachat"
+                      ? `Ответ ${message.answer.model || "GigaChat"}`
+                      : message.answer.mode === "yandex"
+                        ? "С помощью Yandex AI"
+                        : "Локальный ответ"}
                   </span>
                   <p className="ai-reply">{message.answer.reply}</p>
                   {message.answer.warning && (
@@ -508,7 +512,7 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
           className="ai-form"
           onSubmit={(event) => {
             event.preventDefault();
-            ask(query);
+            ask(query, event.nativeEvent.submitter?.value === "external");
           }}
         >
           <label htmlFor="ai-query">Ваш вопрос навигатору</label>
@@ -527,12 +531,17 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
               className="button"
               type="submit"
               disabled={loading}
-              aria-label="Задать вопрос"
+              value={status?.configured ? "external" : "local"}
             >
               <ArrowRight size={20} aria-hidden="true" />
-              <span>Задать вопрос</span>
+              <span>{status?.configured ? `Спросить ${status.provider}` : "Задать вопрос"}</span>
             </button>
           </div>
+          {status?.configured && (
+            <button className="ai-link" type="submit" value="local" disabled={loading}>
+              Искать локально
+            </button>
+          )}
         </form>
         {error && (
           <p className="ai-error" role="alert">
@@ -541,8 +550,8 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
         )}
         <p className="ai-note" id="ai-chat-note">
           В демо «сегодня» — 16 ноября 2026, время московское. Используйте
-          вымышленные сведения. История чата исчезнет при выходе из раздела;
-          подготовленные действия доступны 10 минут.
+          вымышленные сведения. История чата доступна до выхода из аккаунта или
+          обновления страницы. Подготовленные действия доступны 10 минут.
         </p>
       </section>
     </div>
