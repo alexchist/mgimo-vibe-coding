@@ -111,6 +111,7 @@ async function scan(page, testInfo, name) {
 test("the next step opens its real task; personal completion persists, advances and can be undone", async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date("2026-11-17T07:00:00Z"));
   const { csrfToken } = await signIn(page.request);
   const original = await getPlan(page.request);
   const initial = await (await page.request.get("/api/bootstrap")).json();
@@ -164,17 +165,23 @@ test("the next step opens its real task; personal completion persists, advances 
     await page
       .getByRole("button", { name: "Какой ближайший дедлайн?", exact: true })
       .click();
-    await expect(page.getByRole("log")).toContainText(
-      "Личная отметка не означает сдачу работы",
-    );
-    await page
-      .getByRole("button", { name: "Открыть дело в плане", exact: true })
-      .click();
-    const earliestAcademic = [...initial.deadlines].sort((a, b) =>
-      a.date.localeCompare(b.date),
-    )[0];
-    await expect(page).toHaveURL(new RegExp(`#plan/${earliestAcademic.id}$`));
-    await expect(rowFor(page, earliestAcademic.id)).toBeFocused();
+    const upcomingAcademic = [...initial.deadlines]
+      .filter((item) => item.date >= initial.todayDate)
+      .sort((a, b) => a.date.localeCompare(b.date))[0];
+    if (upcomingAcademic) {
+      await expect(page.getByRole("log")).toContainText(
+        "Личная отметка не означает сдачу работы",
+      );
+      await page
+        .getByRole("button", { name: "Открыть дело в плане", exact: true })
+        .click();
+      await expect(page).toHaveURL(new RegExp(`#plan/${upcomingAcademic.id}$`));
+      await expect(rowFor(page, upcomingAcademic.id)).toBeFocused();
+    } else {
+      await expect(page.getByRole("log")).toContainText(
+        "Ближайших учебных дедлайнов в плане нет",
+      );
+    }
 
     // Empty-state fixture uses the real API; completion controls were exercised above.
     for (const item of original.items)
@@ -222,6 +229,7 @@ test("a personal task keeps input on error, accepts no date and asks before dele
   await expect(page.getByRole("alert")).toContainText("Введите название");
   const title = `Личная подготовка ${Date.now()}`;
   await titleInput.fill(title);
+  await page.getByLabel(/^Срок/).fill("2026-11-21");
   await page.getByRole("button", { name: "Убрать срок", exact: true }).click();
   await expect(page.getByLabel(/^Срок/)).toHaveValue("");
   await page.route("**/api/plan", (route) =>
@@ -349,6 +357,7 @@ test("unknown and another student's task links reveal only the signed-in student
 test("360px keeps the next action visible, opens the plan through real navigation and preserves requests", async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date("2026-11-16T07:00:00Z"));
   await page.setViewportSize({ width: 360, height: 800 });
   const session = await signIn(page.request, "mark@demo.orbita");
   const first = (await getPlan(page.request)).items.find(

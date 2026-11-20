@@ -49,6 +49,8 @@
 .day-overview .welcome-copy p > br { display: none; }
 .day-overview .welcome-button { margin-top: auto; min-height: 44px; font-size: 12px; background: #294c86; }
 .day-overview .welcome-copy p + .welcome-button { margin-top: 20px; }
+.day-overview .overdue-link { color: #795021; min-height: 44px; }
+.day-overview .overdue-link:hover { text-decoration: underline; }
 .dashboard-stats { margin-top: 24px; }
 .stat-card:hover { transform: none; }
 .today-card { border-top: 0; }

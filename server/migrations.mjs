@@ -1,11 +1,11 @@
 // Add metadata to existing demos without resetting grades, requests or read state.
 export function upgradeDemoRecords(db) {
-  const rows = db.prepare("SELECT * FROM records").all();
   const save = db.prepare(
     "UPDATE records SET payload_json = ? WHERE id = ? AND user_id = ?",
   );
   db.exec("BEGIN IMMEDIATE");
   try {
+    const rows = db.prepare("SELECT * FROM records").all();
     for (const row of rows) {
       const item = JSON.parse(row.payload_json);
       const before = JSON.stringify(item);

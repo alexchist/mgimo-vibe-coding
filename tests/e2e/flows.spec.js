@@ -222,17 +222,32 @@ test("a delayed data refresh cannot restore private UI after logout", async ({
   }
 });
 
+test("a teacher answer opens and focuses the matching discipline", async ({ page }) => {
+  await seedSession(page);
+  await page.goto("/#assistant");
+  await page.getByLabel("Ваш вопрос навигатору", { exact: true }).fill("Как зовут преподавателя по географии?");
+  await page.getByRole("button", { name: "Задать вопрос", exact: true }).click();
+  await expect(page.getByText("«Политическая география» — Есения Радова.")).toBeVisible();
+  await page.getByRole("button", { name: "Открыть дисциплину", exact: true }).click();
+  await expect(page).toHaveURL(/#grades\/student-alisa-course-4$/);
+  const discipline = page.getByRole("button", { name: /Политическая география/ });
+  await expect(discipline).toHaveAttribute("aria-expanded", "true");
+  await expect(discipline).toBeFocused();
+  await expect(page.locator(".ac-grade-details .ac-teacher")).toHaveText("Есения Радова");
+});
+
 test("schedule filters, real calendar download and grade details work", async ({
   page,
 }) => {
   await seedSession(page);
+  await page.clock.setFixedTime(new Date("2026-11-18T08:00:00Z"));
   await openSection(page, "schedule", "Расписание");
   await expect(
     page.getByText("Перед парой — проверьте аудиторию", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: /Воскресенье, 22 ноября/ }).click();
   await expect(
-    page.getByRole("button", { name: "Сегодня в демо", exact: true }),
+    page.getByRole("button", { name: "Сегодня", exact: true }),
   ).toHaveAttribute("aria-pressed", "false");
   await expect(
     page.getByRole("heading", { name: "День без пар", exact: true }),
@@ -268,6 +283,15 @@ test("schedule filters, real calendar download and grade details work", async ({
   expect(calendarText).toContain("BEGIN:VCALENDAR");
   expect(calendarText).toContain("DTSTART:20261116T060000Z");
   expect(calendarText.match(/BEGIN:VEVENT/g)).toHaveLength(13);
+  await page.getByRole("button", { name: "23–29 ноября 2026" }).click();
+  const secondDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Экспорт недели", exact: true }).click();
+  const secondCalendar = await secondDownload;
+  expect(secondCalendar.suggestedFilename()).toBe("kursom-2026-11-23.ics");
+  const secondCalendarText = await readFile(await secondCalendar.path(), "utf8");
+  expect(secondCalendarText).toContain("DTSTART:20261123T060000Z");
+  expect(secondCalendarText).not.toContain("DTSTART:20261116");
+  expect(secondCalendarText.match(/BEGIN:VEVENT/g)).toHaveLength(13);
 
   await openSection(page, "grades", "Успеваемость");
   await page

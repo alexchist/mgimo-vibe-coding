@@ -14,7 +14,7 @@ COPY --chown=node:node package.json package-lock.json ./
 RUN npm ci --omit=dev --no-fund --no-audit && mkdir -p /app/data && chown node:node /app/data
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --chown=node:node server ./server
-COPY --chown=node:node src/navigator.js ./src/navigator.js
+COPY --chown=node:node src/calendar.js src/navigator.js ./src/
 USER node
 EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s CMD node -e "fetch('http://127.0.0.1:3001/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"

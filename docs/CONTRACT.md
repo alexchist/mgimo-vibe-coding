@@ -14,9 +14,9 @@ API, exact contract (backend owner implements):
 GET /api/session => {user, csrfToken}, or 401.
 POST /api/login {login,password} => {user,csrfToken}. Demo logins alisa@demo.orbita / mark@demo.orbita, password Orbita2026! (public fictional accounts). Hash credentials in database; never plaintext in storage.
 POST /api/logout => {ok:true}.
-GET /api/bootstrap => {user,schedule,grades,requests,notifications,deadlines,semester,referenceDate}.
+GET /api/bootstrap => {user,schedule,grades,requests,notifications,deadlines,plan,semester,referenceDate,todayDate}.
 user = {id,firstName,lastName,middleName,fullName,initials,faculty,program,year,group,email,studentNumber,avatarColor}.
-referenceDate = '2026-11-16' fixed demo Monday, UI must say «Демо-неделя · 16–22 ноября» wherever dates used. semester = 'Осенний семестр 2026'.
+`referenceDate` is the start of the planner and booking demo week (16–22 November 2026). `todayDate` uses the current date in Europe/Moscow. The schedule covers 16–29 November, and each lesson belongs to a single ISO date. The semester is «Осенний семестр 2026».
 schedule[] = {id,day:1..6,date:'2026-11-16',start:'09:00',end:'10:20',subject,type,teacher,room,building,color,changed:boolean,changeNote,originalRoom}.
 grades[] = {id,subject,teacher,score:0..100,grade:'Отлично',credits,attendance:0..100,examDate:'2026-12-15',assessment:'Экзамен'|'Зачёт',trend:number,components:[{label,score,max}]}.
 requests[] = {id,number,type,purpose,comment,status:'submitted'|'processing'|'ready',createdAt,updatedAt,estimatedDate,history:[{status,at,text}]}.

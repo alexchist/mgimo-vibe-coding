@@ -505,7 +505,7 @@ export function AIAssistant({
         {loading && (
           <p className="ai-loading" role="status">
             <LoaderCircle size={17} className="ai-spin" aria-hidden="true" />
-            Проверяю ваши данные…
+            Готовлю ответ…
           </p>
         )}
         <form
@@ -549,7 +549,7 @@ export function AIAssistant({
           </p>
         )}
         <p className="ai-note" id="ai-chat-note">
-          В демо «сегодня» — 16 ноября 2026, время московское. Используйте
+          «Сегодня» и «завтра» определяются по московскому времени. Используйте
           вымышленные сведения. История чата доступна до выхода из аккаунта или
           обновления страницы. Подготовленные действия доступны 10 минут.
         </p>

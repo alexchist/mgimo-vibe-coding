@@ -109,6 +109,7 @@
 }
 .ac-calendar-toolbar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 20px;
   padding: 23px 25px 22px;
@@ -136,14 +137,6 @@
   background: white;
   color: #1b5149;
   box-shadow: 0 1px 5px #142d2910;
-}
-.ac-calendar-range {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-  color: #68766d;
-  font-size: 12px;
-  white-space: nowrap;
 }
 .ac-weekdays {
   display: grid;
@@ -261,7 +254,7 @@
   font-size: 17px;
   font-weight: 700;
 }
-.ac-day-title > span {
+.ac-day-title > span, .ac-day-title > time {
   color: #5f7164;
   font-size: 11px;
 }
@@ -1120,12 +1113,6 @@
     padding: 17px 14px;
     gap: 8px;
   }
-  .ac-calendar-range {
-    font-size: 10px;
-  }
-  .ac-calendar-range svg {
-    display: none;
-  }
   .ac-segmented button {
     padding: 8px 10px;
     font-size: 11px;
@@ -1346,9 +1333,6 @@
   .ac-calendar-toolbar {
     align-items: flex-start;
     flex-wrap: wrap;
-  }
-  .ac-calendar-range {
-    align-self: center;
   }
   .ac-session-score small {
     font-size: 12px;

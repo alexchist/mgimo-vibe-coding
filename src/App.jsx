@@ -31,6 +31,17 @@ import {
 } from "lucide-react";
 import api from "./api";
 import { weightedCurrentScore } from "./academic-metrics";
+import {
+  calendarLabel,
+  defaultScheduleWeek,
+  isOverdue,
+  lessonStatusLabels,
+  moscowClock,
+  SCHEDULE_RANGE_LABEL,
+  scheduleEmptyLabels,
+  scheduleWeek,
+  todaySchedule,
+} from "./calendar.js";
 import { Schedule, Grades } from "./components/Academics";
 import { Planner } from "./components/Planner";
 import { Requests, Notifications, Profile } from "./components/Services";
@@ -343,15 +354,11 @@ function Login({ onLogin }) {
 
 function Dashboard({ data, onNavigate }) {
   const { user } = data;
-  const schedule = data.schedule || [];
-  const today = schedule
-    .filter(
-      (item) =>
-        item.date === data.referenceDate || (!item.date && item.day === 1),
-    )
-    .sort((a, b) => a.start.localeCompare(b.start));
-  const next = today[0];
-  const changed = today.find((item) => item.changed);
+  const day = todaySchedule(data.schedule || [], data.clock);
+  const { lessons: today, focus: lessonInFocus, status } = day;
+  const week = defaultScheduleWeek(data.todayDate);
+  const hasSchedule = !!scheduleWeek(data.todayDate);
+  const changed = today.find((item) => item.changed && day.lessonStatus(item) !== "done");
   const grades = data.grades || [];
   const mean = weightedCurrentScore(grades);
   const attendance = grades.length
@@ -373,19 +380,22 @@ function Dashboard({ data, onNavigate }) {
         (a.dueDate || "9999").localeCompare(b.dueDate || "9999") ||
         a.id.localeCompare(b.id),
     );
-  const deadline = openItems[0];
-  const daysLeft = deadline?.dueDate
-    ? Math.round(
-        (Date.parse(deadline.dueDate) - Date.parse(data.referenceDate)) /
-          86400000,
-      )
-    : null;
-  const planDateLabel =
-    daysLeft === null
-      ? "Без срока"
-      : daysLeft === 0
-        ? "Сегодня в демо"
-        : `Через ${daysLeft} дн. в демо`;
+  const overdue = openItems.filter((item) => isOverdue(item, data.todayDate));
+  const deadline = openItems.find((item) => !isOverdue(item, data.todayDate));
+  let planHeading = overdue.length
+    ? "Предстоящих дел нет"
+    : "Можно немного выдохнуть";
+  if (deadline)
+    planHeading = deadline.dueDate ? "Следующее дело" : "Дела без срока";
+  const planTitle =
+    deadline?.title || (!openItems.length && "В личном плане всё отмечено");
+  let planDateLabel = "Без срока";
+  if (deadline?.dueDate) {
+    planDateLabel =
+      deadline.dueDate === data.todayDate
+        ? "Сегодня"
+        : calendarLabel(deadline.dueDate);
+  }
   return (
     <div className="dashboard">
       <div className="dashboard-heading">
@@ -398,55 +408,100 @@ function Dashboard({ data, onNavigate }) {
           <p>Всё важное на сегодня — без лишнего шума.</p>
         </div>
         <span className="date-chip">
-          <CalendarDays size={16} /> Понедельник, 16 ноября
+          <CalendarDays size={16} aria-hidden="true" />
+          <time dateTime={data.todayDate}>
+            {calendarLabel(data.todayDate, { weekday: "long" })}
+          </time>
         </span>
       </div>
       <div className="day-overview">
         <section className="day-focus" aria-labelledby="day-focus-title">
-          <span className="day-kicker">Первая пара демо-дня</span>
-          {next ? <>
-            <div className="departure-time">{next.start}<span>— {next.end}</span></div>
-            <h2 id="day-focus-title">{next.subject}</h2>
-            <p className="departure-place"><MapPin size={18} /> Аудитория {next.room}</p>
-            <p className="departure-teacher">{next.teacher} · {next.type}</p>
-            <button className="button" onClick={() => onNavigate("schedule")}>
-              Открыть расписание <ArrowRight size={17} />
+          {lessonInFocus && (
+            <span className="day-kicker">{lessonStatusLabels[status]}</span>
+          )}
+          {lessonInFocus ? (
+            <>
+              <div className="departure-time">
+                {lessonInFocus.start}
+                <span>— {lessonInFocus.end}</span>
+              </div>
+              <h2 id="day-focus-title">{lessonInFocus.subject}</h2>
+              <p className="departure-place">
+                <MapPin size={18} /> Аудитория {lessonInFocus.room}
+              </p>
+              <p className="departure-teacher">
+                {lessonInFocus.teacher} · {lessonInFocus.type}
+              </p>
+              <button
+                className="button"
+                onClick={() =>
+                  onNavigate("schedule", `lesson-${lessonInFocus.id}`)
+                }
+              >
+                Открыть расписание <ArrowRight size={17} />
+              </button>
+            </>
+          ) : (
+            <>
+              <h2 id="day-focus-title">{scheduleEmptyLabels[status]}</h2>
+              {!hasSchedule && (
+                <p>Демо-расписание доступно на {SCHEDULE_RANGE_LABEL}.</p>
+              )}
+              <button
+                className="button"
+                onClick={() => onNavigate("schedule", week.context)}
+              >
+                Посмотреть неделю <ArrowRight size={17} />
+              </button>
+            </>
+          )}
+          {changed && (
+            <button
+              className="day-change"
+              onClick={() => onNavigate("schedule", `lesson-${changed.id}`)}
+            >
+              <span>
+                <strong>Изменение аудитории</strong>
+                <br />
+                {changed.subject} · {changed.start} · теперь {changed.room}
+              </span>
+              <ArrowRight size={18} />
             </button>
-          </> : <>
-            <h2 id="day-focus-title">Сегодня без пар</h2>
-            <p>Посмотрите другие дни демо-недели или займитесь личным планом.</p>
-            <button className="button" onClick={() => onNavigate("schedule", "week")}>Посмотреть неделю <ArrowRight size={17} /></button>
-          </>}
-          {changed && <button className="day-change" onClick={() => onNavigate("schedule", `lesson-${changed.id}`)}>
-            <span><strong>Изменение аудитории</strong><br />{changed.subject} · {changed.start} · теперь {changed.room}</span><ArrowRight size={18} />
-          </button>}
+          )}
         </section>
-      <section className="welcome-card">
-        <div className="welcome-copy">
-          <span className="mini-label">
-            <span /> ЛИЧНЫЙ ПЛАН · ДЕМО-НЕДЕЛЯ
-          </span>
-          <h2>
-            {deadline ? "Следующее дело" : "Можно немного выдохнуть"}
-          </h2>
-          <p>
-            <strong>
-              {deadline ? deadline.title : "В личном плане всё отмечено"}
-            </strong>
-            <br />
-            {deadline ? `${planDateLabel} · ` : ""}
-            {planItems.length - openItems.length} из {planItems.length} дел
-            отмечено вами.
-          </p>
-          <p className="plan-summary-note">Личная отметка не означает сдачу преподавателю.</p>
-          <button
-            className="button welcome-button"
-            onClick={() => onNavigate("plan", deadline?.id)}
-          >
-            {deadline ? "Мой следующий шаг" : "Открыть мой план"} <ArrowRight size={17} />
-          </button>
-        </div>
-      </section>
+        <section className="welcome-card">
+          <div className="welcome-copy">
+            <span className="mini-label">
+              <span /> ЛИЧНЫЙ ПЛАН
+            </span>
+            <h2>{planHeading}</h2>
+            <p>
+              {planTitle && <strong>{planTitle}</strong>}
+              {deadline ? `${planDateLabel} · ` : ""}
+              {planItems.length - openItems.length} из {planItems.length} дел
+              отмечено вами.
+            </p>
+            <p className="plan-summary-note">
+              Личная отметка не означает сдачу преподавателю.
+            </p>
+            <button
+              className="button welcome-button"
+              onClick={() => onNavigate("plan", deadline?.id)}
+            >
+              {deadline ? "Мой следующий шаг" : "Открыть мой план"}{" "}
+              <ArrowRight size={17} aria-hidden="true" />
+            </button>
+            {overdue.length > 0 && (
+              <button
+                className="text-button overdue-link"
+                onClick={() => onNavigate("plan", overdue[0].id)}
+              >
+                Просроченные дела · {overdue.length}{" "}
+                <ArrowRight size={16} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        </section>
       </div>
       <div className="dashboard-columns">
         <div className="dashboard-main-column">
@@ -456,57 +511,66 @@ function Dashboard({ data, onNavigate }) {
                 <span className="eyebrow">ПЛАН НА ДЕНЬ</span>
                 <h2>
                   Сегодня в расписании{" "}
-                  <span className="count-pill">{today.length}</span>
+                  {hasSchedule && (
+                    <span className="count-pill">{today.length}</span>
+                  )}
                 </h2>
               </div>
               <button
                 className="text-button"
-                onClick={() => onNavigate("schedule", "week")}
+                onClick={() => onNavigate("schedule", week.context)}
               >
                 Вся неделя <ArrowRight size={16} />
               </button>
             </div>
             <div className="today-lessons">
               {today.length ? (
-                today.map((lesson, index) => (
-                  <button
-                    key={lesson.id}
-                    className={`today-lesson ${index === 0 ? "first" : ""}`}
-                    onClick={() => onNavigate("schedule")}
-                  >
-                    <span className="lesson-time">
-                      <strong>{lesson.start}</strong>
-                      <small>{lesson.end}</small>
-                    </span>
-                    <span className={`lesson-bar lesson-bar-${index % 3}`} />
-                    <span className="lesson-info">
-                      <span className="lesson-kind">
-                        {lesson.type}
-                        {index === 0 && <span>Первая пара</span>}
+                today.map((lesson, index) => {
+                  const statusLabel =
+                    lessonStatusLabels[day.lessonStatus(lesson)];
+                  return (
+                    <button
+                      key={lesson.id}
+                      className={`today-lesson ${lesson === lessonInFocus ? "first" : ""}`}
+                      onClick={() =>
+                        onNavigate("schedule", `lesson-${lesson.id}`)
+                      }
+                    >
+                      <span className="lesson-time">
+                        <strong>{lesson.start}</strong>
+                        <small>{lesson.end}</small>
                       </span>
-                      <strong>{lesson.subject}</strong>
-                      <span className="lesson-details">
-                        <span>
-                          <MapPin size={13} />
-                          {lesson.room}
+                      <span className={`lesson-bar lesson-bar-${index % 3}`} />
+                      <span className="lesson-info">
+                        <span className="lesson-kind">
+                          {lesson.type}
+                          {statusLabel && <span>{statusLabel}</span>}
                         </span>
-                        <span className="lesson-teacher">{lesson.teacher}</span>
+                        <strong>{lesson.subject}</strong>
+                        <span className="lesson-details">
+                          <span>
+                            <MapPin size={13} />
+                            {lesson.room}
+                          </span>
+                          <span className="lesson-teacher">
+                            {lesson.teacher}
+                          </span>
+                        </span>
                       </span>
-                    </span>
-                    <ChevronRight size={16} className="lesson-chevron" />
-                  </button>
-                ))
+                      <ChevronRight size={16} className="lesson-chevron" />
+                    </button>
+                  );
+                })
               ) : (
                 <div className="empty-state">
                   <CalendarDays size={28} />
-                  <h3>Сегодня без пар</h3>
-                  <p>Можно выдохнуть или посмотреть план на неделю.</p>
+                  <h3>{scheduleEmptyLabels[status]}</h3>
                 </div>
               )}
             </div>
             <div className="today-footer">
               <span>
-                <Clock3 size={14} /> Демо-неделя · 16–22 ноября
+                <Clock3 size={14} /> Демо-расписание · {SCHEDULE_RANGE_LABEL}
               </span>
               <span>Все изменения — в одном месте</span>
             </div>
@@ -603,13 +667,21 @@ function Dashboard({ data, onNavigate }) {
           </span>
           <span className="stat-copy">
             <strong>
-              {today.length}
-              <small> пары на сегодня</small>
+              {hasSchedule ? (
+                <>
+                  {today.length}
+                  <small> пары на сегодня</small>
+                </>
+              ) : (
+                "Расписание"
+              )}
             </strong>
             <span>
               {today.length
                 ? `${today[0].start} — ${today[today.length - 1].end}`
-                : "Время для себя"}
+                : hasSchedule
+                  ? "Сегодня без пар"
+                  : "На сегодня нет данных"}
             </span>
           </span>
           <ChevronRight size={17} />
@@ -678,6 +750,25 @@ export default function App() {
   const searchRef = useRef(null);
   const sidebarRef = useRef(null);
   const authGeneration = useRef(0);
+  const [clock, setClock] = useState(moscowClock);
+  const todayDate = clock.date;
+  useEffect(() => {
+    const update = () => setClock(moscowClock());
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") update();
+    };
+    let timer;
+    const tick = () => {
+      update();
+      timer = setTimeout(tick, 60000 - (Date.now() % 60000));
+    };
+    tick();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
   const assistantOpen = phase === "ready" && route === "assistant";
   useEffect(() => {
     if (phase !== "ready") {
@@ -869,6 +960,7 @@ export default function App() {
     );
   if (phase === "login" || !data)
     return <Login onLogin={() => refresh(++authGeneration.current)} />;
+  const currentData = { ...data, todayDate, clock };
   const unread = data.notifications.filter((item) => !item.read).length;
   const activeItem = navigation.find((item) => item.id === route);
   const chatProvider = assistantStatus?.configured && assistantStatus.provider;
@@ -1106,7 +1198,7 @@ export default function App() {
         </header>
         <div className="demo-strip">
           <span>
-            <span className="demo-indicator" /> Демо-неделя · 16–22 ноября
+            <span className="demo-indicator" /> Демо-расписание · {SCHEDULE_RANGE_LABEL}
           </span>
           <span>
             Все данные вымышлены <ShieldCheck size={13} />
@@ -1114,17 +1206,17 @@ export default function App() {
         </div>
         <main id="main-content" className="page-content" tabIndex={-1}>
           {route === "dashboard" && (
-            <Dashboard data={data} onNavigate={navigate} />
+            <Dashboard data={currentData} onNavigate={navigate} />
           )}{" "}
           {route === "schedule" && (
-            <Schedule data={data} viewContext={routeContext} />
+            <Schedule data={currentData} viewContext={routeContext} />
           )}{" "}
           {route === "grades" && (
             <Grades data={data} viewContext={routeContext} />
           )}{" "}
           {route === "plan" && (
             <Planner
-              data={data}
+              data={currentData}
               refresh={refresh}
               notify={notify}
               focusId={routeContext}

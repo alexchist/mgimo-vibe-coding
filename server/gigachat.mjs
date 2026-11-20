@@ -172,11 +172,12 @@ export function createGigaChat(db, options = {}) {
         ca,
       });
       if (response.status === 401) token = undefined;
+      if (response.status !== 200)
+        throw new Error("Unexpected GigaChat response status");
       const { model: actualModel, choices } = response.payload ?? {};
       const choice = choices?.[0];
       const content = choice?.message?.content;
       if (
-        response.status !== 200 ||
         typeof actualModel !== "string" ||
         !MODEL_ID.test(actualModel) ||
         (actualModel !== model && !actualModel.startsWith(`${model}:`)) ||
@@ -190,8 +191,17 @@ export function createGigaChat(db, options = {}) {
         !content.trim() ||
         content.length > 2400
       )
-        throw new Error("Unexpected GigaChat response");
+        throw Object.assign(new Error("Unexpected GigaChat response"), {
+          code: "INVALID_COMPLETION",
+        });
       return { model: actualModel, content: content.trim() };
+    } catch (error) {
+      if (signal.aborted) throw signal.reason;
+      if (error instanceof SyntaxError)
+        throw Object.assign(new Error("Invalid provider JSON"), {
+          code: "INVALID_COMPLETION",
+        });
+      throw error;
     } finally {
       pending = false;
     }
@@ -207,7 +217,7 @@ export function createGigaChat(db, options = {}) {
       provider: configured ? "GigaChat" : null,
       model: configured ? model : null,
       disclosure: configured
-        ? "С вашего разрешения GigaChat получает текущий и один предыдущий вопрос, описания разделов и цитаты из демодокументов. Записи аккаунта и загруженные файлы остаются в кабинете."
+        ? "С вашего разрешения GigaChat получает вопрос и, для уточнения, один связанный вопрос, ранее отправленный модели. Для вопросов о кабинете добавляются подходящие публичные источники. Записи аккаунта и загруженные файлы остаются в кабинете."
         : "Настройки GigaChat неполные, либо сервер не смог загрузить файл доверенных сертификатов. Вопросы обрабатывает локальный демопомощник.",
     }),
   };

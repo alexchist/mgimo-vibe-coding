@@ -1,6 +1,7 @@
 let csrfToken = "";
 export async function api(path, options = {}) {
   const { body, headers, ...rest } = options;
+  const requestCsrf = csrfToken;
   const payloadBody =
     body === undefined &&
     ["POST", "PUT", "PATCH", "DELETE"].includes(
@@ -17,7 +18,7 @@ export async function api(path, options = {}) {
         ...(payloadBody !== undefined
           ? { "Content-Type": "application/json" }
           : {}),
-        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+        ...(requestCsrf ? { "X-CSRF-Token": requestCsrf } : {}),
         ...headers,
       },
       ...(payloadBody !== undefined
@@ -47,7 +48,12 @@ export async function api(path, options = {}) {
         "Не удалось выполнить запрос. Попробуйте ещё раз.",
     );
     error.status = response.status;
-    if (response.status === 401 && path !== "/login" && path !== "/session")
+    if (
+      response.status === 401 &&
+      requestCsrf === csrfToken &&
+      path !== "/login" &&
+      path !== "/session"
+    )
       window.dispatchEvent(new Event("orbita:unauthorized"));
     throw error;
   }

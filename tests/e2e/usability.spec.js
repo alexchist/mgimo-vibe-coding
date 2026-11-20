@@ -160,6 +160,7 @@ test("opening a confirmed request on mobile keeps its card in view", async ({
 test("the mobile room-change link reveals and focuses the actual lesson", async ({
   page,
 }, testInfo) => {
+  await page.clock.setFixedTime(new Date("2026-11-16T06:00:00Z"));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page
@@ -187,6 +188,7 @@ test("the mobile room-change link reveals and focuses the actual lesson", async 
 test("a lesson keeps its original daily number when the schedule is filtered", async ({
   page,
 }, testInfo) => {
+  await page.clock.setFixedTime(new Date("2026-11-16T06:00:00Z"));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByLabel("Логин", { exact: true }).fill("alisa@demo.orbita");

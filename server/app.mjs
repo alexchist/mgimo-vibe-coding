@@ -11,7 +11,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { openDatabase } from "./database.mjs";
-import { REFERENCE_DATE, SEMESTER } from "./seed.mjs";
+import { SEMESTER } from "./seed.mjs";
+import { DEMO_WEEK_START, moscowDate } from "../src/calendar.js";
 import { installPlanner } from "./planner.mjs";
 import { installCampus } from "./campus.mjs";
 import { installKnowledge } from "./knowledge.mjs";
@@ -69,6 +70,7 @@ async function verifyPassword(password, stored) {
 
 /** Create an isolated app instance; tests can pass { databasePath: ':memory:' }. */
 export function createApp(options = {}) {
+  const calendarNow = options.now ?? Date.now;
   const db = openDatabase(
     options.databasePath ??
       process.env.DATABASE_PATH ??
@@ -310,6 +312,7 @@ export function createApp(options = {}) {
     ...options.actions,
   });
   const assistant = installAssistant(app, db, authenticate, {
+    now: calendarNow,
     ...options.assistant,
     campus,
     knowledge,
@@ -319,6 +322,7 @@ export function createApp(options = {}) {
     getPlan,
   });
   const mcp = installMcp(app, db, authenticate, {
+    scheduleNow: options.now,
     ...options.mcp,
     campus,
     knowledge,
@@ -347,7 +351,8 @@ export function createApp(options = {}) {
     const data = {
       user: req.user,
       semester: SEMESTER,
-      referenceDate: REFERENCE_DATE,
+      referenceDate: DEMO_WEEK_START,
+      todayDate: moscowDate(calendarNow()),
       plan: getPlan(req.user.id),
     };
     for (const kind of [
