@@ -142,6 +142,16 @@
   gap: 10px;
   align-items: center;
 }
+.connections-channel > .button + .connections-actions,
+.connections-channel > .button + .button,
+.connections-channel > .connections-pairing + .button {
+  margin-top: 10px;
+}
+.connections-channel > .button {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+}
 .connections-page button,
 .connections-page .button {
   min-height: 44px;

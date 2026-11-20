@@ -9,6 +9,12 @@ services:
       COOKIE_SECURE: "true"
       TRUST_PROXY: "1"
       APP_ORIGIN: https://${DOMAIN:?Set DOMAIN in .env}
+      VK_GROUP_ID: "${VK_GROUP_ID:-}"
+      VK_GROUP_TOKEN: "${VK_GROUP_TOKEN:-}"
+      VK_WEBHOOK_SECRET: "${VK_WEBHOOK_SECRET:-}"
+      VK_CONFIRMATION_TOKEN: "${VK_CONFIRMATION_TOKEN:-}"
+      VK_API_VERSION: "${VK_API_VERSION:-5.199}"
+      ALLOW_REAL_CHANNEL_LINKING: "${ALLOW_REAL_CHANNEL_LINKING:-false}"
     volumes:
       - orbita_data:/app/data
     expose:

@@ -28,7 +28,7 @@ const EVENT_LABELS = {
   demo: "Демо · сохранено локально",
   pending: "В очереди",
   processing: "Отправляем",
-  delivered: "Доставлено провайдером",
+  delivered: "Принято провайдером",
   failed: "Не отправлено",
   cancelled: "Отменено",
   uncertain: "Доставка не подтверждена",
@@ -40,6 +40,8 @@ const ERROR_LABELS = {
   retry_limit: "Лимит повторов исчерпан. Проверьте настройки подключения.",
   provider_rejected:
     "Провайдер отклонил сообщение. Проверьте доступ бота к диалогу.",
+  vk_messages_denied:
+    "VK запретил отправку. Разрешите сообщения от сообщества в личном диалоге и отправьте новый тест.",
   response_lost:
     "Ответ потерян. Повторная отправка отключена, чтобы не продублировать сообщение.",
   unreadable_response:
@@ -65,6 +67,115 @@ const dateLabel = (value) => {
   }).format(date);
 };
 
+function VkPairing({ pairing, busy, renew, onSnapshot }) {
+  const [expired, setExpired] = useState(Date.now() >= pairing.expiresAt);
+  const [check, setCheck] = useState(0);
+  const [status, setStatus] = useState("");
+  const [copyStatus, setCopyStatus] = useState("");
+
+  useEffect(() => {
+    const expire = setTimeout(
+      () => setExpired(true),
+      Math.max(0, pairing.expiresAt - Date.now()),
+    );
+    const onReturn = () => {
+      if (document.visibilityState === "visible")
+        setCheck((value) => value + 1);
+    };
+    window.addEventListener("focus", onReturn);
+    document.addEventListener("visibilitychange", onReturn);
+    return () => {
+      clearTimeout(expire);
+      window.removeEventListener("focus", onReturn);
+      document.removeEventListener("visibilitychange", onReturn);
+    };
+  }, [pairing.expiresAt]);
+
+  useEffect(() => {
+    if (check === 0) return;
+    const controller = new AbortController();
+    setStatus("Проверяем подключение…");
+    api("/channels", { signal: controller.signal })
+      .then((snapshot) => {
+        if (controller.signal.aborted) return;
+        onSnapshot(snapshot);
+        setStatus(
+          "Подтверждение из VK пока не получено. Если вы уже отправили код, проверьте ещё раз.",
+        );
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) setStatus(error.message);
+      });
+    return () => controller.abort();
+  }, [check, onSnapshot]);
+
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(pairing.code);
+      setCopyStatus("Код скопирован.");
+    } catch {
+      setCopyStatus("Выделите код в поле и скопируйте его вручную.");
+    }
+  }
+
+  return (
+    <div className="connections-pairing">
+      {expired ? (
+        <>
+          <p>
+            Срок действия кода истёк. Если вы ещё не отправили код, получите
+            новый.
+          </p>
+          <button className="button secondary" disabled={busy} onClick={renew}>
+            Получить новый код
+          </button>
+        </>
+      ) : (
+        <>
+          <strong>Отправьте код со своей страницы VK</strong>
+          <p>
+            Скопируйте код и отправьте его одним сообщением в личный диалог
+            сообщества. Затем вернитесь сюда.
+          </p>
+          <label htmlFor="vk-pair-code">Одноразовый код VK</label>
+          <input
+            id="vk-pair-code"
+            readOnly
+            value={pairing.code}
+            onFocus={(event) => event.target.select()}
+          />
+          <p>
+            Действует до {dateLabel(pairing.expiresAt)} МСК, пока вы в этом
+            аккаунте.
+          </p>
+          <div className="connections-actions">
+            <button className="button secondary" onClick={copyCode}>
+              Скопировать код
+            </button>
+            <a
+              className="button secondary"
+              href={pairing.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Открыть диалог VK <ExternalLink size={15} aria-hidden="true" />
+            </a>
+          </div>
+          {copyStatus && <p role="status">{copyStatus}</p>}
+        </>
+      )}
+      <button
+        className="connections-text-button"
+        disabled={busy}
+        onClick={() => setCheck((value) => value + 1)}
+      >
+        Проверить подключение VK
+      </button>
+      {status && <p role="status">{status}</p>}
+    </div>
+  );
+}
+
 export function Connections({ notify }) {
   const [channels, setChannels] = useState(null);
   const [mcp, setMcp] = useState(null);
@@ -83,6 +194,15 @@ export function Connections({ notify }) {
   const [freshToken, setFreshToken] = useState(null);
   const [revoking, setRevoking] = useState(null);
   const [copyMessage, setCopyMessage] = useState("");
+  const vkIsConnected = channels?.channels.some(
+    (channel) =>
+      channel.provider === "vk" && channel.connection?.mode === "live",
+  );
+
+  useEffect(() => {
+    if (vkIsConnected)
+      setPairing((current) => (current?.provider === "vk" ? null : current));
+  }, [vkIsConnected]);
 
   useEffect(() => {
     let active = true;
@@ -143,14 +263,20 @@ export function Connections({ notify }) {
       setBusy("");
     }
   }
-  async function testNotification() {
+  async function testNotification(provider) {
     if (busy) return;
     setBusy("test");
     setChannelError("");
     try {
-      setChannels(await api("/channels/test", { method: "POST" }));
+      setChannels(
+        await api(provider === "vk" ? "/channels/vk/test" : "/channels/test", {
+          method: "POST",
+        }),
+      );
       notify?.(
-        "Тестовое событие добавлено в журнал. Статус показывает результат обработки.",
+        provider === "vk"
+          ? "Тест для VK добавлен в журнал. Обновите статус, чтобы увидеть результат отправки."
+          : "Тестовое событие добавлено в журнал. Статус показывает результат обработки.",
       );
     } catch (error) {
       setChannelError(error.message);
@@ -312,8 +438,8 @@ export function Connections({ notify }) {
                   <p className="connections-note">
                     Настоящие привязки отключены на этом сервере.
                     Демоподключение показывает полный путь события в локальном
-                    журнале и ничего не отправляет в Telegram или VK.
-                    {" "}Можно включить или отключить канал целиком; выбор типов
+                    журнале и ничего не отправляет в Telegram или VK. Можно
+                    включить или отключить канал целиком; выбор типов
                     уведомлений в демо пока недоступен.
                   </p>
                 )}
@@ -333,6 +459,7 @@ export function Connections({ notify }) {
                         <div>
                           <h3>{channel.title}</h3>
                           <span
+                            role="status"
                             className={`connections-status ${channel.connection ? "is-connected" : ""}`}
                           >
                             {channel.connection?.mode === "demo"
@@ -355,6 +482,35 @@ export function Connections({ notify }) {
                           ? "Подключение к сервису настроено"
                           : "Для настоящих сообщений администратору нужно настроить подключение"}
                       </p>
+                      {channel.provider === "vk" &&
+                        channel.liveAllowed &&
+                        (channel.connection?.mode === "live" ? (
+                          <button
+                            className="button"
+                            disabled={!!busy}
+                            onClick={() => testNotification("vk")}
+                          >
+                            <BellRing size={16} aria-hidden="true" />
+                            Отправить тест в VK
+                          </button>
+                        ) : pairing?.provider !== "vk" ? (
+                          <button
+                            className="button"
+                            disabled={!!busy}
+                            onClick={() => channelAction("vk", "pair")}
+                          >
+                            <Link2 size={16} aria-hidden="true" />
+                            Подключить VK
+                          </button>
+                        ) : (
+                          <VkPairing
+                            key={pairing.code}
+                            pairing={pairing}
+                            onSnapshot={setChannels}
+                            busy={!!busy}
+                            renew={() => channelAction("vk", "pair")}
+                          />
+                        ))}
                       {channel.connection ? (
                         <>
                           {disconnecting === channel.provider ? (
@@ -397,66 +553,77 @@ export function Connections({ notify }) {
                           )}
                         </>
                       ) : (
-                        <div className="connections-actions">
-                          <button
-                            className="button"
-                            disabled={!!busy}
-                            onClick={() =>
-                              channelAction(channel.provider, "demo-connect")
-                            }
-                          >
-                            Подключить демо {channel.title}
-                          </button>
-                          {channel.liveAllowed && (
+                        !(
+                          channel.provider === "vk" &&
+                          pairing?.provider === "vk"
+                        ) && (
+                          <div className="connections-actions">
                             <button
-                              className="button secondary"
+                              className={
+                                channel.provider === "vk" && channel.liveAllowed
+                                  ? "button secondary"
+                                  : "button"
+                              }
                               disabled={!!busy}
                               onClick={() =>
-                                channelAction(channel.provider, "pair")
+                                channelAction(channel.provider, "demo-connect")
                               }
                             >
-                              <Link2 size={16} aria-hidden="true" />
-                              Подключить {channel.title}
+                              Подключить демо {channel.title}
                             </button>
-                          )}
-                        </div>
+                            {channel.provider !== "vk" &&
+                              channel.liveAllowed && (
+                                <button
+                                  className="button secondary"
+                                  disabled={!!busy}
+                                  onClick={() =>
+                                    channelAction(channel.provider, "pair")
+                                  }
+                                >
+                                  <Link2 size={16} aria-hidden="true" />
+                                  Подключить {channel.title}
+                                </button>
+                              )}
+                          </div>
+                        )
                       )}
-                      {pairing?.provider === channel.provider && (
-                        <div className="connections-pairing" role="status">
-                          <strong>Подтвердите личный диалог</strong>
-                          <p>{pairing.instructions}</p>
-                          <label
-                            htmlFor={`channel-pair-code-${channel.provider}`}
-                          >
-                            Одноразовый код
-                          </label>
-                          <input
-                            id={`channel-pair-code-${channel.provider}`}
-                            readOnly
-                            value={pairing.code}
-                            onFocus={(event) => event.target.select()}
-                          />
-                          <p>
-                            Действует до {dateLabel(pairing.expiresAt)} МСК.
-                            Выход из кабинета отменяет возможность привязки.
-                          </p>
-                          <a
-                            className="button secondary"
-                            href={pairing.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Открыть {channel.title}
-                            <ExternalLink size={15} aria-hidden="true" />
-                          </a>
-                          <button
-                            className="connections-text-button"
-                            onClick={() => copy(pairing.code, "Код")}
-                          >
-                            Скопировать код
-                          </button>
-                        </div>
-                      )}
+                      {channel.provider !== "vk" &&
+                        pairing?.provider === channel.provider && (
+                          <div className="connections-pairing" role="status">
+                            <strong>Подтвердите личный диалог</strong>
+                            <p>{pairing.instructions}</p>
+                            <label
+                              htmlFor={`channel-pair-code-${channel.provider}`}
+                            >
+                              Одноразовый код
+                            </label>
+                            <input
+                              id={`channel-pair-code-${channel.provider}`}
+                              readOnly
+                              value={pairing.code}
+                              onFocus={(event) => event.target.select()}
+                            />
+                            <p>
+                              Действует до {dateLabel(pairing.expiresAt)} МСК.
+                              Выход из кабинета отменяет возможность привязки.
+                            </p>
+                            <a
+                              className="button secondary"
+                              href={pairing.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Открыть {channel.title}
+                              <ExternalLink size={15} aria-hidden="true" />
+                            </a>
+                            <button
+                              className="connections-text-button"
+                              onClick={() => copy(pairing.code, "Код")}
+                            >
+                              Скопировать код
+                            </button>
+                          </div>
+                        )}
                     </article>
                   ))}
                 </div>
@@ -475,7 +642,7 @@ export function Connections({ notify }) {
                         !!busy ||
                         !channels.channels.some((channel) => channel.connection)
                       }
-                      onClick={testNotification}
+                      onClick={() => testNotification()}
                     >
                       <BellRing size={16} aria-hidden="true" />
                       Тест уведомления
@@ -516,8 +683,8 @@ export function Connections({ notify }) {
                       <BellRing size={26} aria-hidden="true" />
                       <strong>Пока нет событий</strong>
                       <p>
-                        Подключите демоканал и нажмите «Тест уведомления», либо
-                        создайте заявку или бронь.
+                        Подключите канал и нажмите «Тест уведомления» или
+                        создайте заявку либо бронь.
                       </p>
                     </div>
                   )}

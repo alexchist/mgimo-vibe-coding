@@ -17,13 +17,15 @@ cp .env.example .env
 Замените `DOMAIN` в `.env` на свой настоящий домен. Значение должно быть только hostname, без протокола/пути. Затем:
 
 ```sh
-docker compose config
+docker compose config --quiet
 docker compose up -d --build
 docker compose ps
 docker compose logs --tail=100 app caddy
 ```
 
 Caddy получает сертификат автоматически после правильной настройки DNS. Приложение не публикует внутренний порт наружу, принимает трафик только через reverse proxy; включены Secure-cookie, проверка origin и постоянный том SQLite. Нужен исходящий доступ Caddy к центру выдачи сертификатов. Сертификаты также сохраняются в томе.
+
+Для уведомлений в VK добавьте ключ сообщества и параметры Callback API в серверный `.env`, затем пересоздайте сервис `app`. [Настройка VK](VK_SETUP.md)
 
 ## Проверки после размещения
 

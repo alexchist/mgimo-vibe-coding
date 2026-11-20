@@ -357,10 +357,12 @@ test("VK verifies group, secret, private sender and deduplicates callback IDs", 
   });
   assert.equal(confirmation.data, configured.vkConfirmationToken);
   const pair = h.pair("vk");
+  assert.equal(pair.url, "https://vk.me/club123456");
   assert.equal((await h.vk(pair.code, { secret: "wrong" })).status, 403);
   assert.equal((await h.vk(pair.code, { groupId: 123457 })).status, 403);
   await h.vk(pair.code, { peer: 2000000001 });
   await h.vk(pair.code, { recipient: -800001 });
+  await h.vk(pair.code, { recipient: 2000000001 });
   assert.equal(h.service.snapshot("alice").channels[1].connection, null);
   assert.equal((await h.vk(pair.code, { eventId: "callback-1" })).data, "ok");
   const id = h.db.prepare("SELECT id FROM channel_bindings").get().id;
@@ -370,6 +372,151 @@ test("VK verifies group, secret, private sender and deduplicates callback IDs", 
     h.db.prepare("SELECT recipient FROM channel_bindings").get().recipient,
     "800001",
   );
+});
+
+test("VK reports invalid configuration and only confirms a correctly configured callback", async (t) => {
+  const callback = {
+    type: "confirmation",
+    group_id: Number(configured.vkGroupId),
+    secret: configured.vkWebhookSecret,
+  };
+  const invalid = await harness(t, {
+    config: {
+      ...configured,
+      vkGroupId: "club123456",
+      vkWebhookSecret: "x".repeat(51),
+      vkApiVersion: "version",
+    },
+  });
+  const channel = invalid.service
+    .snapshot("alice")
+    .channels.find((row) => row.provider === "vk");
+  assert.equal(channel.liveAllowed, false);
+  assert.deepEqual(channel.invalidSettings.sort(), [
+    "VK_API_VERSION",
+    "VK_GROUP_ID",
+    "VK_WEBHOOK_SECRET",
+  ]);
+  const incomplete = await harness(t, {
+    config: { ...configured, vkConfirmationToken: "" },
+  });
+  const confirm = (h, body) =>
+    h.request("/api/channels/vk/webhook", { user: null, method: "POST", body });
+  assert.equal((await confirm(incomplete, callback)).status, 503);
+  const disabled = await harness(t, {
+    config: { ...configured, vkToken: "", allowRealLinking: false },
+  });
+  assert.equal(
+    (await confirm(disabled, callback)).data,
+    configured.vkConfirmationToken,
+  );
+  assert.equal(
+    (await confirm(disabled, { ...callback, secret: "wrong" })).status,
+    403,
+  );
+});
+
+test("a VK-only test cannot reach another channel and distinguishes acceptance, rejection and ambiguous responses", async (t) => {
+  let reply = { response: 0 };
+  const h = await harness(t, {
+    config: configured,
+    fetchImpl: async () => Response.json(reply),
+  });
+  const send = (body = {}) =>
+    h.request("/api/channels/vk/test", { method: "POST", body });
+  h.service.connectDemo("alice", "telegram");
+  assert.equal((await send()).status, 400);
+  await h.vk(h.pair("vk").code);
+  assert.equal((await send({ peer_id: 123456 })).status, 400);
+  for (const [response, status, errorCode] of [
+    [{ response: 0 }, "delivered", null],
+    [{ response: 35 }, "delivered", null],
+    [{ error: { error_code: 901 } }, "failed", "vk_messages_denied"],
+    [{}, "uncertain", "unreadable_response"],
+    [{ response: "1" }, "uncertain", "unreadable_response"],
+    [{ response: -1 }, "uncertain", "unreadable_response"],
+  ]) {
+    h.advance(6000);
+    reply = response;
+    assert.equal((await send()).status, 200);
+    await h.service.flush();
+    const event = h.service.snapshot("alice").events[0];
+    assert.equal(event.status, status);
+    assert.equal(event.errorCode, errorCode);
+  }
+  assert.ok(
+    h.service.snapshot("alice").events.every((row) => row.provider === "vk"),
+  );
+  assert.deepEqual(h.service.snapshot("bob").events, []);
+});
+
+test("VK message_deny checks current permission and removes only the binding that was checked", async (t) => {
+  let permission = () => Response.json({ response: { is_allowed: 1 } });
+  const h = await harness(t, {
+    config: configured,
+    fetchImpl: async (url, request) => {
+      assert.equal(
+        url,
+        "https://api.vk.com/method/messages.isMessagesFromGroupAllowed",
+      );
+      assert.equal(request.method, "POST");
+      assert.equal(request.redirect, "error");
+      const body = new URLSearchParams(request.body);
+      assert.equal(body.get("user_id"), "800001");
+      assert.equal(body.get("group_id"), configured.vkGroupId);
+      assert.equal(body.get("access_token"), configured.vkToken);
+      return permission();
+    },
+  });
+  const deny = (id) =>
+    h.request("/api/channels/vk/webhook", {
+      user: null,
+      method: "POST",
+      body: {
+        type: "message_deny",
+        group_id: 123456,
+        event_id: id,
+        secret: configured.vkWebhookSecret,
+        object: { user_id: 800001 },
+      },
+    });
+  const account = () =>
+    h.service.snapshot("alice").channels.find((row) => row.provider === "vk")
+      .connection;
+  await h.vk(h.pair("vk").code);
+  await deny("out-of-order"); // User already granted permission again.
+  assert.equal(account().mode, "live");
+  permission = () => Response.json({ error: { error_code: 6 } });
+  assert.equal((await deny("retry")).status, 503);
+  assert.equal(account().mode, "live");
+  let unblock;
+  let queryStarted;
+  const checking = new Promise((resolve) => {
+    queryStarted = resolve;
+  });
+  permission = () =>
+    new Promise((resolve) => {
+      unblock = resolve;
+      queryStarted();
+    });
+  const inFlight = deny("race");
+  await checking;
+  h.advance(6000);
+  await h.vk(h.pair("vk").code);
+  unblock(Response.json({ response: { is_allowed: 0 } }));
+  assert.equal((await inFlight).data, "ok");
+  assert.equal(account().mode, "live");
+  h.service.enqueue("alice", sample());
+  permission = () => Response.json({ response: { is_allowed: 0 } });
+  assert.equal((await deny("retry")).data, "ok");
+  assert.equal(account(), null);
+  assert.equal(h.service.snapshot("alice").events[0].status, "cancelled");
+  h.advance(6000);
+  await h.vk(h.pair("vk").code);
+  const previousCalls = h.calls.length;
+  assert.equal((await deny("retry")).data, "ok");
+  assert.equal(account().mode, "live");
+  assert.equal(h.calls.length, previousCalls);
 });
 
 test("outbox sends once per event, serializes flushes and cancels stale bindings", async (t) => {

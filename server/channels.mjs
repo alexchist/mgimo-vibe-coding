@@ -22,6 +22,11 @@ const constantEqual = (left, right) => {
 };
 const positiveId = (value) =>
   Number.isSafeInteger(Number(value)) && Number(value) > 0;
+const validVKGroup = (value) => /^[1-9]\d*$/.test(value) && positiveId(value);
+const validVKSecret = (value) =>
+  typeof value === "string" && value.length >= 16 && value.length <= 50;
+const validVKEventId = (id) =>
+  typeof id === "string" && id.length > 0 && id.length <= 200;
 const emptyBody = (body) =>
   !body ||
   (typeof body === "object" &&
@@ -101,7 +106,20 @@ export function installChannels(app, db, authenticate, options = {}) {
     return name === "telegram"
       ? /^[A-Za-z0-9_]{5,32}$/.test(config.telegramUsername) &&
           /^[A-Za-z0-9_-]{16,256}$/.test(config.telegramWebhookSecret)
-      : positiveId(config.vkGroupId) && config.vkWebhookSecret.length >= 16;
+      : invalidVKSettings().length === 0;
+  }
+  function invalidVKSettings() {
+    const invalid = [];
+    if (config.vkGroupId && !validVKGroup(config.vkGroupId))
+      invalid.push("VK_GROUP_ID");
+    if (config.vkWebhookSecret && !validVKSecret(config.vkWebhookSecret))
+      invalid.push("VK_WEBHOOK_SECRET");
+    if (config.vkToken && /\s/.test(config.vkToken))
+      invalid.push("VK_GROUP_TOKEN");
+    if (config.vkConfirmationToken && /\s/.test(config.vkConfirmationToken))
+      invalid.push("VK_CONFIRMATION_TOKEN");
+    if (!/^\d+\.\d+$/.test(config.vkApiVersion)) invalid.push("VK_API_VERSION");
+    return invalid;
   }
   function binding(userId, name) {
     return db
@@ -130,6 +148,7 @@ export function installChannels(app, db, authenticate, options = {}) {
           configured: configured(name),
           liveAllowed: configured(name) && config.allowRealLinking === true,
           missingSettings: missingSettings(name),
+          ...(name === "vk" && { invalidSettings: invalidVKSettings() }),
           connection: row
             ? {
                 mode: row.mode,
@@ -217,7 +236,7 @@ export function installChannels(app, db, authenticate, options = {}) {
       url:
         name === "telegram"
           ? `https://t.me/${config.telegramUsername}?start=${code}`
-          : `https://vk.com/im?sel=-${config.vkGroupId}`,
+          : `https://vk.me/club${config.vkGroupId}`,
       instructions:
         name === "telegram"
           ? "Откройте личный диалог с ботом и нажмите «Начать». Затем обновите статус здесь."
@@ -289,7 +308,75 @@ export function installChannels(app, db, authenticate, options = {}) {
     );
   }
 
-  function enqueue(userId, event) {
+  async function handleVKDeny(recipient, eventId) {
+    if (
+      !Number.isSafeInteger(recipient) ||
+      recipient <= 0 ||
+      !validVKEventId(eventId)
+    )
+      return;
+    if (
+      db
+        .prepare(
+          "SELECT 1 FROM channel_webhook_receipts WHERE provider='vk' AND event_id=?",
+        )
+        .get(eventId)
+    )
+      return;
+    const current = db
+      .prepare(
+        "SELECT id, user_id FROM channel_bindings WHERE provider='vk' AND mode='live' AND recipient=?",
+      )
+      .get(String(recipient));
+    if (!current) {
+      acknowledgeEvent("vk", eventId);
+      return;
+    }
+    if (!config.allowRealLinking || !configured("vk"))
+      fail(503, "Серверное подключение VK отключено.");
+
+    // VK's deny event has no timestamp. The user may have already re-enabled messages.
+    let allowed;
+    try {
+      const result = await fetchImpl(
+        "https://api.vk.com/method/messages.isMessagesFromGroupAllowed",
+        {
+          method: "POST",
+          redirect: "error",
+          signal: AbortSignal.timeout(2000),
+          body: new URLSearchParams({
+            access_token: config.vkToken,
+            v: config.vkApiVersion,
+            group_id: String(config.vkGroupId),
+            user_id: String(recipient),
+          }),
+        },
+      );
+      if (result.ok) {
+        const data = await result.json();
+        if (!data?.error) allowed = data?.response?.is_allowed;
+      }
+    } catch {
+      // Leave the event unacknowledged so VK can retry it.
+    }
+    if (allowed !== 0 && allowed !== 1)
+      fail(503, "Не удалось проверить разрешение VK. Повторите событие.");
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      if (acknowledgeEvent("vk", eventId) && allowed === 0) {
+        const removed = db
+          .prepare("DELETE FROM channel_bindings WHERE id=?")
+          .run(current.id);
+        if (removed.changes) cancelPending(current.user_id, "vk");
+      }
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
+  function enqueue(userId, event, onlyProvider = null) {
     if (
       !event ||
       typeof event.title !== "string" ||
@@ -301,8 +388,10 @@ export function installChannels(app, db, authenticate, options = {}) {
         ? event.id
         : randomUUID();
     const rows = db
-      .prepare("SELECT * FROM channel_bindings WHERE user_id = ?")
-      .all(userId);
+      .prepare(
+        "SELECT * FROM channel_bindings WHERE user_id = ? AND (? IS NULL OR provider = ?)",
+      )
+      .all(userId, onlyProvider, onlyProvider);
     const ids = [];
     for (const row of rows) {
       const id = randomUUID();
@@ -338,7 +427,11 @@ export function installChannels(app, db, authenticate, options = {}) {
     ).run(status, code, messageId, now(), id);
   }
   async function deliver(row, target) {
-    const text = `Орбита · конкурсный концепт\n${row.title}\n${row.body}`;
+    const sender =
+      row.provider === "vk"
+        ? "Курсом · учебный демокабинет"
+        : "Орбита · конкурсный концепт";
+    const text = `${sender}\n${row.title}\n${row.body}`;
     const request =
       row.provider === "telegram"
         ? {
@@ -383,9 +476,10 @@ export function installChannels(app, db, authenticate, options = {}) {
         response.ok &&
         (row.provider === "telegram"
           ? data.ok === true && Number.isSafeInteger(data.result?.message_id)
-          : !data.error &&
-            Number.isSafeInteger(data.response) &&
-            data.response > 0);
+          : !data?.error &&
+            Number.isSafeInteger(data?.response) &&
+            // Single-peer messages.send returns an integer; community sends can return 0.
+            data.response >= 0);
       if (success) {
         finish(
           row.id,
@@ -399,11 +493,19 @@ export function installChannels(app, db, authenticate, options = {}) {
         );
         return;
       }
+      if (
+        row.provider === "vk" &&
+        response.ok &&
+        !Number.isSafeInteger(data?.error?.error_code)
+      ) {
+        finish(row.id, "uncertain", "unreadable_response");
+        return;
+      }
       const rateLimited =
         response.status === 429 ||
         (row.provider === "telegram"
           ? data.error_code === 429
-          : data.error?.error_code === 6);
+          : data?.error?.error_code === 6);
       if (rateLimited && row.attempts < 3) {
         const delay = Math.min(
           3600,
@@ -417,6 +519,11 @@ export function installChannels(app, db, authenticate, options = {}) {
         ).run(now() + delay * 1000, now(), row.id);
       } else if (response.status >= 500)
         finish(row.id, "uncertain", "provider_unavailable");
+      else if (
+        row.provider === "vk" &&
+        [900, 901, 902].includes(data?.error?.error_code)
+      )
+        finish(row.id, "failed", "vk_messages_denied");
       else
         finish(
           row.id,
@@ -511,7 +618,8 @@ export function installChannels(app, db, authenticate, options = {}) {
   app.delete("/api/channels/:provider", authenticate, (req, res) =>
     res.json(disconnect(req.user.id, req.params.provider)),
   );
-  app.post("/api/channels/test", authenticate, (req, res) => {
+  function testNotification(req, res) {
+    const name = req.params.provider ? provider(req.params.provider) : null;
     if (!emptyBody(req.body))
       fail(
         400,
@@ -519,10 +627,17 @@ export function installChannels(app, db, authenticate, options = {}) {
       );
     if (
       !db
-        .prepare("SELECT 1 FROM channel_bindings WHERE user_id = ?")
-        .get(req.user.id)
+        .prepare(
+          "SELECT 1 FROM channel_bindings WHERE user_id = ? AND (? IS NULL OR provider = ?)",
+        )
+        .get(req.user.id, name, name)
     )
-      fail(400, "Сначала подключите хотя бы один демоканал.");
+      fail(
+        400,
+        name
+          ? `Сначала подключите ${TITLES[name]}.`
+          : "Сначала подключите хотя бы один канал.",
+      );
     const recent = db
       .prepare(
         "SELECT created_at FROM channel_outbox WHERE user_id=? AND category='test' ORDER BY created_at DESC LIMIT 1",
@@ -533,14 +648,20 @@ export function installChannels(app, db, authenticate, options = {}) {
         429,
         "Тестовое уведомление уже подготовлено. Подождите несколько секунд.",
       );
-    enqueue(req.user.id, {
-      id: randomUUID(),
-      title: "Проверка уведомлений",
-      body: "Это тестовое событие конкурсного прототипа. Учебные данные не изменялись.",
-      category: "test",
-    });
+    enqueue(
+      req.user.id,
+      {
+        id: randomUUID(),
+        title: "Проверка уведомлений",
+        body: "Это тестовое событие конкурсного прототипа. Учебные данные не изменялись.",
+        category: "test",
+      },
+      name,
+    );
     res.json(snapshot(req.user.id));
-  });
+  }
+  app.post("/api/channels/test", authenticate, testNotification);
+  app.post("/api/channels/:provider/test", authenticate, testNotification);
   app.post("/api/channels/telegram/webhook", (req, res) => {
     if (
       !config.telegramWebhookSecret ||
@@ -574,25 +695,36 @@ export function installChannels(app, db, authenticate, options = {}) {
     else acknowledgeEvent("telegram", String(body.update_id));
     res.json({ ok: true });
   });
-  app.post("/api/channels/vk/webhook", (req, res) => {
+  app.post("/api/channels/vk/webhook", async (req, res) => {
     const body = req.body;
     if (
-      !config.vkWebhookSecret ||
+      !validVKGroup(config.vkGroupId) ||
+      !validVKSecret(config.vkWebhookSecret) ||
       !constantEqual(body?.secret, config.vkWebhookSecret) ||
       !positiveId(body?.group_id) ||
       String(body.group_id) !== String(config.vkGroupId)
     )
       return res.status(403).json({ error: "Webhook не авторизован." });
-    if (body.type === "confirmation")
-      return res
-        .type("text")
-        .send(config.vkConfirmationToken || "not-configured");
+    if (body.type === "confirmation") {
+      if (!config.vkConfirmationToken || /\s/.test(config.vkConfirmationToken))
+        return res
+          .status(503)
+          .json({ error: "Не настроено подтверждение VK Callback API." });
+      return res.type("text").send(config.vkConfirmationToken);
+    }
+    if (body.type === "message_deny") {
+      await handleVKDeny(body.object?.user_id, body.event_id);
+      return res.type("text").send("ok");
+    }
     if (body.type !== "message_new") return res.type("text").send("ok");
     const message = body.object?.message;
     if (
       !message ||
-      !positiveId(message.from_id) ||
-      Number(message.peer_id) !== Number(message.from_id) ||
+      !Number.isSafeInteger(message.from_id) ||
+      message.from_id < 1 ||
+      message.from_id >= 2000000000 ||
+      message.peer_id !== message.from_id ||
+      (message.out !== undefined && message.out !== 0) ||
       typeof message.text !== "string"
     )
       return res.type("text").send("ok");
@@ -602,8 +734,7 @@ export function installChannels(app, db, authenticate, options = {}) {
       (positiveId(messageId)
         ? `${body.group_id}:${message.from_id}:${messageId}`
         : null);
-    if (typeof eventId !== "string" || !eventId || eventId.length > 200)
-      return res.type("text").send("ok");
+    if (!validVKEventId(eventId)) return res.type("text").send("ok");
     const match = message.text.trim().match(/^(orbita_[a-f0-9]{32})$/);
     if (match) consumePairing("vk", match[1], message.from_id, eventId);
     else acknowledgeEvent("vk", eventId);
