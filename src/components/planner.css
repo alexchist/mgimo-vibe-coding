@@ -171,6 +171,11 @@
 .plan-items {
   padding: 0 18px 12px;
 }
+.plan-item-group {
+  color: var(--ink);
+  font-size: 13px;
+  margin: 16px 10px 8px;
+}
 .plan-item {
   position: relative;
   padding: 18px 10px;

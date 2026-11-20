@@ -123,7 +123,7 @@ test("private import is isolated before ranking and document access; HTML and SQ
     const text =
       "# Учебный клуб\n\n1. Гелиотропная оранжерея работает по вымышленным четвергам.\n\n2. <script>alert('fictional')</script> — пример текста, не команда.";
     const { document } = await knowledge.importDocument("alice", {
-      title: "Учебная оранжерея",
+      title: "Аметистовая учебная оранжерея",
       text,
       fileName: "rules.md",
     });
@@ -136,6 +136,12 @@ test("private import is isolated before ranking and document access; HTML and SQ
       document.id,
     );
     assert.equal(knowledge.search("bob", "гелиотропная").hasResults, false);
+    assert.equal(
+      knowledge.search("alice", "аметистовая", { scope: "private" }).sources[0].documentId,
+      document.id,
+    );
+    assert.equal(knowledge.search("alice", "аметистовая", { scope: "shared" }).hasResults, false);
+    assert.equal(knowledge.search("bob", "аметистовая", { scope: "private" }).hasResults, false);
     assert.equal(
       knowledge
         .listDocuments("bob")

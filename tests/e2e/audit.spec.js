@@ -73,7 +73,7 @@ for (const width of [1440, 360])
       page.getByRole("button", { name: "Вся неделя", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
     await page.goto("/#assistant");
-    let answer = await ask(page, "Какие пары завтра?");
+    let answer = await ask(page, "Какие пары 17 ноября 2026?");
     await expect(answer).toContainText("17 ноября");
     await answer
       .getByRole("button", { name: "Открыть расписание", exact: true })
@@ -83,7 +83,7 @@ for (const width of [1440, 360])
     ).toBeVisible();
     await page.goto("/#assistant");
     answer = await ask(page, "Когда ближайший экзамен по английскому?");
-    await expect(answer).toContainText("18 декабря");
+    await expect(answer).toContainText(data.todayDate <= "2026-12-18" ? "18 декабря" : "в демо-данных нет");
     await expect(answer).not.toContainText("История международных отношений");
     await answer
       .getByRole("button", { name: "Посмотреть сессию", exact: true })
@@ -113,7 +113,7 @@ for (const width of [1440, 360])
     ).toBeLessThanOrEqual(width + 1);
   });
 
-for (const failure of ["connection-reset", "invalid-json"])
+for (const failure of ["connection-reset", "invalid-json", "missing-item"])
   test(`retry after ${failure} preserves one saved task and a Russian error`, async ({
     page,
   }) => {
@@ -137,7 +137,7 @@ for (const failure of ["connection-reset", "invalid-json"])
             await route.fulfill({
               status: 201,
               contentType: "application/json",
-              body: "{",
+              body: failure === "missing-item" ? "{}" : "{",
             });
         } else await route.continue();
       });
@@ -149,7 +149,9 @@ for (const failure of ["connection-reset", "invalid-json"])
       await expect(page.getByRole("alert")).toContainText(
         failure === "connection-reset"
           ? "Проверьте соединение"
-          : "Не удалось прочитать ответ сервера",
+          : failure === "missing-item"
+            ? "Не удалось прочитать сохранённую задачу"
+            : "Не удалось прочитать ответ сервера",
       );
       await expect(
         page.getByLabel("Название задачи", { exact: true }),

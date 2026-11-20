@@ -4,6 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createApp } from "../server/app.mjs";
+import { moscowDate } from "../src/calendar.js";
 
 test("student workflows, authorization and persistence", async (t) => {
   const dir = await mkdtemp(join(tmpdir(), "orbita-api-"));
@@ -18,7 +19,7 @@ test("student workflows, authorization and persistence", async (t) => {
   }
   async function stop() {
     await new Promise((resolve) => server.close(resolve));
-    app.locals.close();
+    await app.locals.close();
   }
   async function call(
     path,
@@ -97,6 +98,7 @@ test("student workflows, authorization and persistence", async (t) => {
           false,
         );
         assert.equal(a.referenceDate, "2026-11-16");
+        assert.equal(a.todayDate, moscowDate());
         assert.equal(JSON.stringify(a).includes("password"), false);
       },
     );
@@ -208,7 +210,7 @@ test("student workflows, authorization and persistence", async (t) => {
     await t.test(
       "notification read state is persistent and private",
       async () => {
-        const n = a.notifications[0];
+        const n = a.notifications.find((item) => !item.read);
         const read = await call("/notifications/read", {
           method: "POST",
           session: alisa,
@@ -225,14 +227,61 @@ test("student workflows, authorization and persistence", async (t) => {
         assert.equal(other.res.status, 404);
       },
     );
-    await t.test("data survives full application restart", async () => {
-      await stop();
-      await boot();
-      const fresh = await login("alisa@demo.orbita");
-      const saved = await call(`/requests/${requestId}`, { session: fresh });
-      assert.equal(saved.res.status, 200);
-      assert.equal(saved.json.request.status, "ready");
-    });
+    await t.test(
+      "saved changes survive logout, relogin and server restart",
+      async () => {
+        const task = await call("/plan", {
+          method: "POST",
+          session: alisa,
+          body: { title: "Сохранённая задача", dueDate: null },
+          headers: { "Idempotency-Key": "persistent-task-test" },
+        });
+        assert.equal(task.res.status, 201);
+        const taskId = task.json.item.id;
+        assert.equal(
+          (
+            await call(`/plan/${taskId}`, {
+              method: "PATCH",
+              session: alisa,
+              body: { completed: true },
+            })
+          ).res.status,
+          200,
+        );
+        assert.equal(
+          (await call("/logout", { method: "POST", session: alisa, body: {} }))
+            .res.status,
+          200,
+        );
+        assert.equal(
+          (await call("/bootstrap", { session: alisa })).res.status,
+          401,
+        );
+        await stop();
+        await boot();
+        const fresh = await login("alisa@demo.orbita");
+        const saved = await call(`/requests/${requestId}`, { session: fresh });
+        assert.equal(saved.res.status, 200);
+        assert.equal(saved.json.request.status, "ready");
+        const restored = await call("/bootstrap", { session: fresh });
+        assert.equal(
+          restored.json.plan.items.find((item) => item.id === taskId).completed,
+          true,
+        );
+        const noticeId = a.notifications.find((item) => !item.read).id;
+        assert.equal(
+          restored.json.notifications.find((item) => item.id === noticeId).read,
+          true,
+        );
+        const other = await call("/bootstrap", { session: mark });
+        assert.equal(other.res.status, 200);
+        assert.ok(!other.json.plan.items.some((item) => item.id === taskId));
+        assert.equal(
+          (await call(`/requests/${requestId}`, { session: mark })).res.status,
+          404,
+        );
+      },
+    );
     await t.test("logout invalidates the server-side session", async () => {
       const session = await login("mark@demo.orbita");
       assert.equal(

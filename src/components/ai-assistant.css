@@ -3,11 +3,6 @@
   margin: 0 auto;
   min-width: 0;
 }
-.ai-eyebrow {
-  color: #647181;
-  font-size: 12px;
-  font-weight: 650;
-}
 .ai-panel {
   padding: 28px;
 }
@@ -53,6 +48,26 @@
 .ai-disclosure p {
   margin: 5px 0 0;
   line-height: 1.55;
+}
+.ai-consent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  min-height: 32px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ai-consent input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #315344;
+}
+.ai-consent input:focus-visible {
+  outline: 2px solid #315344;
+  outline-offset: 3px;
 }
 .ai-prompts {
   display: grid;

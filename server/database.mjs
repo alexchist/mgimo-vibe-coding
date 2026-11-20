@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { seedDatabase } from "./seed.mjs";
+import { seedDatabase, seedJudgingSchedule } from "./seed.mjs";
 import { upgradeDemoRecords } from "./migrations.mjs";
 
 export function openDatabase(databasePath) {
@@ -48,6 +48,7 @@ export function openDatabase(databasePath) {
     );
   `);
   seedDatabase(db);
+  seedJudgingSchedule(db);
   upgradeDemoRecords(db);
   return db;
 }

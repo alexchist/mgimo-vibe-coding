@@ -310,6 +310,58 @@ test("demo notifications stay local and MCP secrets disappear on reload and can 
   }
 });
 
+test("on 360 px Navigator asks for GigaChat consent and links to generated sources", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await login(page);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({
+    json: {
+      mode: "gigachat",
+      configured: true,
+      provider: "GigaChat",
+      model: "GigaChat-3-Pro",
+      disclosure: "GigaChat получает вопрос и цитаты из демодокументов. Загруженные файлы остаются в кабинете.",
+    },
+  }));
+  const submissions = [];
+  await page.route("**/api/assistant/chat", (route) => {
+    const body = route.request().postDataJSON();
+    submissions.push(body);
+    if (!body.shareQuestion) return route.continue();
+    return route.fulfill({
+      json: {
+        reply: "По демодокументу справка готовится за 3 рабочих дня.",
+        mode: "gigachat",
+        model: "GigaChat-3-Pro:1.2",
+        conversationId: body.conversationId,
+        sources: [{
+          documentId: "demo-document-orders",
+          chunkId: "fixture-chunk",
+          title: "Порядок выдачи справок и подачи заявлений",
+          section: "Пункт 2",
+          quote: "Справка готовится за 3 рабочих дня.",
+          fictional: true,
+        }],
+        links: [{ route: "requests", label: "Заявки и справки" }],
+      },
+    });
+  });
+  await open(page, "assistant", "Навигатор");
+  await page.getByRole("button", { name: "Что ты умеешь?" }).click();
+  await page.getByRole("button", { name: "Искать локально" }).click();
+  await expect(page.getByText("Локальный ответ", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Как заказать справку?" }).click();
+  await page.getByRole("button", { name: "Спросить GigaChat" }).click();
+  await expect(page.getByText("Ответ GigaChat-3-Pro:1.2", { exact: true })).toBeVisible();
+  await expect(page.locator("blockquote")).toHaveText("Справка готовится за 3 рабочих дня.");
+  expect(submissions.map(({ shareQuestion }) => shareQuestion)).toEqual([false, true]);
+  expect(submissions[1]).not.toHaveProperty("history");
+  await checkWidth(page);
+  await page.getByRole("button", { name: "Открыть документ" }).click();
+  await expect(page).toHaveURL(/#knowledge\/demo-document-orders$/);
+  await open(page, "assistant", "Навигатор");
+  await expect(page.locator(".ai-exchange")).toHaveCount(2);
+});
+
 test("on 360 px the assistant prepares a request and waits for a separate confirmation", async ({
   page,
 }) => {
@@ -319,7 +371,7 @@ test("on 360 px the assistant prepares a request and waits for a separate confir
   try {
     await open(page, "assistant", "Навигатор");
     await expect(
-      page.getByText("Локальный демопомощник", { exact: true }),
+      page.getByText(/Локальный демопомощник/),
     ).toBeVisible();
     const before = (await (await page.request.get("/api/bootstrap")).json())
       .requests.length;
@@ -384,13 +436,13 @@ for (const viewport of [
       ["housing", "Общежитие", ".housing-invoices"],
       ["knowledge", "База знаний", ".knowledge-documents li"],
       ["connections", "Подключения", ".connections-token-form"],
-      ["assistant", "Навигатор", ".ai-disclosure"],
+      ["assistant", "Навигатор", ".ai-form"],
     ]) {
       await open(page, route, heading);
       await expect(page.locator(ready).first()).toBeVisible();
       if (route === "assistant")
         await expect(
-          page.getByText("Локальный демопомощник", { exact: true }),
+          page.getByText(/Локальный демопомощник/),
         ).toBeVisible();
       await page.evaluate(async () => {
         await Promise.all(

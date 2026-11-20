@@ -49,6 +49,8 @@
 .day-overview .welcome-copy p > br { display: none; }
 .day-overview .welcome-button { margin-top: auto; min-height: 44px; font-size: 12px; background: #294c86; }
 .day-overview .welcome-copy p + .welcome-button { margin-top: 20px; }
+.day-overview .overdue-link { color: #795021; min-height: 44px; }
+.day-overview .overdue-link:hover { text-decoration: underline; }
 .dashboard-stats { margin-top: 24px; }
 .stat-card:hover { transform: none; }
 .today-card { border-top: 0; }
@@ -84,4 +86,52 @@
   .course-art { display: none; }
   .login-story h1 { font-size: 32px; }
   .login-story-body { padding-top: 20px; padding-bottom: 0; }
+}
+
+.desktop-grade-line { display: none; }
+@media (min-width: 1024px) {
+  .app-body .page-content { padding-top: 18px; }
+  .page-content :is(.dashboard-heading, div.page-heading, .ac-page-top, .connections-heading, .campus-heading, .plan-heading, .knowledge-heading) { margin: 0 0 14px; min-height: 0; }
+  .page-content :is(.dashboard-heading, div.page-heading, .campus-heading, .connections-heading, .knowledge-heading, .plan-heading) > div:first-child > :is(p,span,.eyebrow),
+  .page-content :is(.svc-private-label,.ac-semester-badge,.knowledge-mode,.ac-grades-toolbar .ac-small-muted),
+  .page-content .ac-grade-summary { display: none; }
+  .page-content h1 { margin-block: 0; }
+  .desktop-grade-line { display: block; margin: 0 0 16px; color: #364858; }
+}
+
+.sidebar .sidebar-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 12px;
+  min-height: 36px;
+}
+.sidebar-search > svg { flex: none; color: var(--muted); }
+.sidebar-search input { width: 100%; min-width: 0; font-size: 12px; }
+.sidebar-search .search-results {
+  inset: calc(100% + 4px) 0 auto;
+  width: auto;
+  max-height: min(48vh, 350px);
+  overflow-y: auto;
+}
+.date-chip time, .demo-strip time { display: block; }
+.date-chip time::first-letter, .demo-strip time::first-letter { text-transform: uppercase; }
+@media (min-width: 761px) {
+  .app-body > .mobile-header { display: none; }
+  .dashboard-heading .date-chip { display: flex; }
+  .sidebar-demo-note { display: block; margin-top: 3px; }
+}
+@media (max-width: 760px) {
+  .sidebar .sidebar-search, .sidebar-demo-note { display: none; }
+}
+
+.sidebar-profile-open[aria-current="page"] { border-radius: 6px; background: var(--mint); }
+.sidebar .sidebar-bottom { margin-top: 0; padding-top: 10px; }
+@media (min-width: 761px) and (max-height: 850px) {
+  .sidebar { padding-block: 16px 12px; }
+  .sidebar .sidebar-separator { margin-block: 10px; }
+  .sidebar .nav-link { min-height: 34px; padding-block: 6px; }
+  .sidebar .desktop-nav { gap: 2px; }
+  .sidebar .nav-section-label { margin-block: 8px 4px; }
+  .sidebar .sidebar-secondary, .sidebar .university-label { margin-top: 6px; }
+  .sidebar .sidebar-bottom { padding-top: 8px; }
 }

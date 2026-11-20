@@ -1,11 +1,186 @@
+import {
+  calendarLabel as dateLabel,
+  addCalendarDays,
+  defaultScheduleWeek,
+  isOverdue,
+  lessonStatusLabels,
+  moscowClock,
+  relativeDate,
+  SCHEDULE_RANGE_LABEL,
+  scheduleContext,
+  scheduleEmptyLabels,
+  scheduleWeek,
+  todaySchedule,
+} from "./calendar.js";
+
 const normalize = (text) => text.toLocaleLowerCase("ru").replaceAll("ё", "е");
-const dateLabel = (value, options = {}) =>
-  new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-    ...options,
-  }).format(new Date(`${value.slice(0, 10)}T12:00:00Z`));
+const weekdays = [
+  /понедельник/,
+  /вторник/,
+  /сред[ауеы]/,
+  /четверг/,
+  /пятниц/,
+  /суббот/,
+  /воскресен/,
+];
+const months = [
+  "января",
+  "февраля",
+  "марта",
+  "апреля",
+  "мая",
+  "июня",
+  "июля",
+  "августа",
+  "сентября",
+  "октября",
+  "ноября",
+  "декабря",
+];
+const writtenDate = new RegExp(
+  `(?:^|[^0-9])(\\d{1,2})\\s+(${months.join("|")})(?:\\s+(20\\d{2}))?(?![а-я0-9])`,
+);
+
+export function explicitCalendarDate(query, today) {
+  const iso = query.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
+  if (iso) return iso[1];
+  const day = query.match(writtenDate);
+  if (!day) return null;
+  const month = String(months.indexOf(day[2]) + 1).padStart(2, "0");
+  return `${day[3] || today.slice(0, 4)}-${month}-${day[1].padStart(2, "0")}`;
+}
+
+export const scheduleQuestion =
+  /расписан|(?:^|[^а-я])пар(?:а|ы|у|е|ой)?(?=$|[^а-я])|заняти|аудитор|где\s+теперь.*практик/;
+
+export function scheduleSelection(message, today) {
+  const query = normalize(message);
+  const date = explicitCalendarDate(query, today);
+  if (date)
+    return /недел|\d\s*[–—-]\s*\d{1,2}\s+[а-я]/.test(query)
+      ? { weekDate: date }
+      : { date };
+  if (/сегодня|завтра|вчера/.test(query))
+    return { date: relativeDate(query, today) };
+
+  const nextWeek =
+    /(?:следующ|будущ)[а-я]*\s+(?:учебн[а-я]*\s+)?недел|через\s+(?:одну\s+)?недел/;
+  const lastWeek =
+    /(?:прошл|предыдущ|минувш)[а-я]*\s+(?:учебн[а-я]*\s+)?недел|недел[а-я]*\s+назад/;
+  const weekOffset = nextWeek.test(query) ? 7 : lastWeek.test(query) ? -7 : 0;
+  const weekday = weekdays.findIndex((expression) => expression.test(query));
+  if (weekday >= 0) {
+    const indexToday = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7;
+    return { date: addCalendarDays(today, weekday - indexToday + weekOffset) };
+  }
+  if (/недел/.test(query))
+    return { weekDate: addCalendarDays(today, weekOffset) };
+  return null;
+}
+
+function unavailableSchedule(date, weekDate, today) {
+  const instant = date && new Date(`${date}T00:00:00Z`);
+  const displayDate =
+    instant &&
+    Number.isFinite(+instant) &&
+    instant.toISOString().startsWith(date)
+      ? dateLabel(date)
+      : date;
+  const heading =
+    date === today
+      ? scheduleEmptyLabels.unavailable
+      : date
+        ? `На ${displayDate} расписания нет`
+        : "Для этой недели данных расписания нет";
+  return {
+    text: `${heading}. Демо-расписание доступно на ${SCHEDULE_RANGE_LABEL}.`,
+    route: "schedule",
+    focusId: defaultScheduleWeek(date || weekDate || today).context,
+    action: "Открыть демо-неделю",
+  };
+}
+
+function lessonLine(lesson) {
+  const change =
+    lesson.changed && lesson.changeNote
+      ? ` Изменение: ${lesson.changeNote}`
+      : "";
+  return `${lesson.start}–${lesson.end} — ${lesson.subject}, аудитория ${lesson.room}, ${lesson.teacher}.${change}`;
+}
+
+export function navigatorSchedule(
+  schedule,
+  clock,
+  { date, weekDate, changesOnly, focusOnly, nextOnly } = {},
+) {
+  const week = scheduleWeek(date || weekDate || clock.date);
+  if (!week && (date || weekDate))
+    return unavailableSchedule(date, weekDate, clock.date);
+  const selectedWeek = week || defaultScheduleWeek(clock.date);
+  const lessons = schedule
+    .filter(
+      (lesson) =>
+        (date
+          ? lesson.date === date
+          : selectedWeek.dates.includes(lesson.date)) &&
+        (!changesOnly || lesson.changed),
+    )
+    .sort(
+      (a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start),
+    );
+  const title = date
+    ? dateLabel(date, { weekday: "long" })
+    : `Демо-неделя ${selectedWeek.label}`;
+  const day =
+    date === clock.date && !changesOnly ? todaySchedule(schedule, clock) : null;
+  const summaryLesson = nextOnly ? day?.next : day?.focus;
+  const summaryStatus = nextOnly && summaryLesson ? "next" : day?.status;
+  const summary =
+    day &&
+    (summaryLesson
+      ? `${lessonStatusLabels[summaryStatus]} · ${lessonLine(summaryLesson)}`
+      : day.status === "current"
+        ? "Идёт последняя пара. Следующих пар сегодня нет."
+        : `${scheduleEmptyLabels[day.status]}.`);
+  const lines = lessons
+    .filter((lesson) => lesson !== day?.focus)
+    .map((lesson) =>
+      date
+        ? lessonLine(lesson)
+        : `${dateLabel(lesson.date)} · ${lessonLine(lesson)}`,
+    );
+  const detail =
+    summary && (focusOnly || !lines.length)
+      ? summary
+      : lines.length
+        ? [summary, ...lines].filter(Boolean).join("\n")
+        : changesOnly
+          ? "Изменений расписания нет."
+          : "Занятий нет.";
+  return {
+    text: `${title}. ${detail}\nВремя московское.`,
+    route: "schedule",
+    focusId: date ? scheduleContext(date) : selectedWeek.context,
+    action: "Открыть расписание",
+  };
+}
+
+export function navigatorScheduleQuery(message, schedule, clock) {
+  const query = normalize(message);
+  const selection = scheduleSelection(query, clock.date);
+  const changesOnly =
+    /перенос|перенес|смен[а-я]*\s+аудитор|измен[а-я]*\s+(?:в\s+)?расписан|где\s+теперь/.test(
+      query,
+    );
+  const focusOnly = /сейчас|ближайш|следующ/.test(query);
+  const nextOnly = !/сейчас/.test(query) && /ближайш|следующ/.test(query);
+  return navigatorSchedule(schedule, clock, {
+    ...(selection || (changesOnly ? {} : { date: clock.date })),
+    changesOnly,
+    focusOnly,
+    nextOnly,
+  });
+}
 
 function selectSubject(query, grades) {
   const words = query.match(/[а-яa-z]+/g) || [];
@@ -28,7 +203,8 @@ function selectSubject(query, grades) {
 
 export function navigatorAnswer(text, data) {
   const query = normalize(text);
-  const referenceDate = data.referenceDate || "2026-11-16";
+  const clock = data.clock || moscowClock();
+  const todayDate = data.todayDate || clock.date;
   // Specific service intents must precede generic words such as «срок».
   if (/справ|заяв|документ|деканат|стипенд/.test(query)) {
     const requests = (data.requests || []).filter((item) => !item.archived);
@@ -62,15 +238,12 @@ export function navigatorAnswer(text, data) {
       (grade) =>
         (!subject || grade.id === subject.id) &&
         grade.examDate &&
-        grade.examDate >= referenceDate &&
+        grade.examDate >= todayDate &&
         (!/экзам/.test(query) || grade.assessment === "Экзамен") &&
         (!/зачет/.test(query) || grade.assessment === "Зачёт"),
     );
-    const date = new Date(`${referenceDate}T12:00:00Z`);
-    if (/послезавтра/.test(query)) date.setUTCDate(date.getUTCDate() + 2);
-    else if (/завтра/.test(query)) date.setUTCDate(date.getUTCDate() + 1);
-    const exactDay = /сегодня|завтра/.test(query)
-      ? date.toISOString().slice(0, 10)
+    const exactDay = /сегодня|завтра|вчера/.test(query)
+      ? relativeDate(query, todayDate)
       : null;
     const next = assessments
       .filter((grade) => !exactDay || grade.examDate === exactDay)
@@ -84,53 +257,8 @@ export function navigatorAnswer(text, data) {
       action: "Посмотреть сессию",
     };
   }
-  if (/пар[аыуе]|расписан|заняти|аудитор|сегодня|завтра|преподав/.test(query)) {
-    if (/следующ.*недел|прошл.*недел|вчера/.test(query))
-      return {
-        text: "Доступно только демонстрационное расписание 16–22 ноября 2026. Для других дат данных нет.",
-        route: "schedule",
-        focusId: "week",
-        action: "Открыть демо-неделю",
-      };
-    const days = [
-      /понедельник/,
-      /вторник/,
-      /сред[ауеы]/,
-      /четверг/,
-      /пятниц/,
-      /суббот/,
-      /воскресен/,
-    ];
-    const namedDay = days.findIndex((expression) => expression.test(query));
-    if (/недел/.test(query) && namedDay < 0)
-      return {
-        text: `В демонстрационной неделе 16–22 ноября занятий: ${(data.schedule || []).length}. Изменений: ${(data.schedule || []).filter((item) => item.changed).length}.`,
-        route: "schedule",
-        focusId: "week",
-        action: "Открыть расписание",
-      };
-    const offset =
-      namedDay >= 0
-        ? namedDay
-        : /послезавтра/.test(query)
-          ? 2
-          : /завтра/.test(query)
-            ? 1
-            : 0;
-    const date = new Date(`${referenceDate}T12:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + offset);
-    const selectedDate = date.toISOString().slice(0, 10);
-    const lessons = (data.schedule || [])
-      .filter((item) => item.date === selectedDate)
-      .sort((a, b) => a.start.localeCompare(b.start));
-    const changed = lessons.find((item) => item.changed);
-    return {
-      text: `${dateLabel(selectedDate, { weekday: "long" })}: ${lessons.length ? `занятий — ${lessons.length}. Первое — «${lessons[0].subject}» в ${lessons[0].start}, аудитория ${lessons[0].room}.` : "занятий нет."}${changed ? ` Изменение: «${changed.subject}», аудитория ${changed.room}. ${changed.changeNote || ""}` : ""} «Сегодня» в демо — 16 ноября, «завтра» — 17 ноября 2026.`,
-      route: "schedule",
-      focusId: `day-${offset + 1}`,
-      action: "Открыть расписание",
-    };
-  }
+  if (scheduleQuestion.test(query))
+    return navigatorScheduleQuery(text, data.schedule || [], { ...clock, date: todayDate });
   if (/оцен|успева|балл/.test(query)) {
     const grades = data.grades || [];
     const focus = [...grades].sort((a, b) => a.score - b.score)[0];
@@ -142,22 +270,27 @@ export function navigatorAnswer(text, data) {
       action: "Разобраться с оценками",
     };
   }
-  if (/дедлайн|срок|успеть|план|ближай|задан/.test(query)) {
-    const deadline = [...(data.deadlines || [])]
-      .filter((item) => item.date >= referenceDate)
-      .sort((a, b) => a.date.localeCompare(b.date))[0];
-    return deadline
-      ? {
-          text: `Ближайший учебный срок: «${deadline.title}»${deadline.subject ? ` по предмету «${deadline.subject}»` : ""}, ${dateLabel(deadline.date)}. ${data.plan?.items.find((item) => item.id === deadline.id)?.completed ? "Вы уже отметили личную готовность." : "Подготовку можно отметить в личном плане."} Личная отметка не означает сдачу работы.`,
-          route: "plan",
-          focusId: deadline.id,
-          action: "Открыть дело в плане",
-        }
-      : {
-          text: "Ближайших учебных дедлайнов в демо-данных нет. Свои задачи можно посмотреть в плане.",
-          route: "plan",
-          action: "Открыть мой план",
-        };
+  if (/дедлайн|срок|успеть|план|ближай|задан|просроч/.test(query)) {
+    const planItems = data.plan?.items || (data.deadlines || []).map((item) => ({
+      ...item, kind: "deadline", dueDate: item.date,
+    }));
+    const overdueOnly = /просроч|срок.*прош/.test(query);
+    const academicOnly = /дедлайн|учебн/.test(query);
+    const eligible = planItems.filter((item) => !item.completed && item.dueDate &&
+      (!academicOnly || item.kind === "deadline"));
+    const overdue = eligible.filter((item) => isOverdue(item, todayDate));
+    const deadline = (overdueOnly ? overdue : eligible.filter((item) => item.dueDate >= todayDate))
+      .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.id.localeCompare(b.id))[0];
+    return {
+      text: deadline
+        ? `${overdueOnly ? "Просрочено" : deadline.kind === "deadline" ? "Ближайший учебный срок" : "Ближайшее дело"}: «${deadline.title}»${deadline.subject ? ` по предмету «${deadline.subject}»` : ""}, ${dateLabel(deadline.dueDate)}. ${deadline.kind === "deadline" ? "Личная отметка не означает сдачу работы." : ""}`.trim()
+        : overdueOnly ? "Просроченных открытых дел нет."
+          : `Ближайших ${academicOnly ? "учебных дедлайнов" : "дел со сроком"} в плане нет.`
+            + (overdue.length ? ` Просрочено дел: ${overdue.length}.` : ""),
+      route: "plan",
+      focusId: deadline?.id,
+      action: deadline ? "Открыть дело в плане" : "Открыть мой план",
+    };
   }
   if (/данн|профил|безопас|парол|почт|групп/.test(query))
     return {
@@ -166,7 +299,7 @@ export function navigatorAnswer(text, data) {
       action: "Мой профиль",
     };
   return {
-    text: "Я могу подсказать расписание демо-недели, текущие баллы, даты аттестаций, учебные сроки и порядок заказа документов. Уточните вопрос или выберите пример. Внешняя нейросеть не используется; официальных ответов университета здесь нет.",
+    text: "Я могу подсказать демо-расписание, текущие баллы, даты аттестаций, учебные сроки и порядок заказа документов. Уточните вопрос или выберите пример. Внешняя нейросеть не используется; официальных ответов университета здесь нет.",
     route: null,
     action: null,
   };

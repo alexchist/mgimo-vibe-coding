@@ -5,18 +5,18 @@ import {
   CheckCircle2,
   Compass,
   LoaderCircle,
-  ShieldCheck,
 } from "lucide-react";
 import api from "../api.js";
 import "./ai-assistant.css";
 
 const prompts = [
+  "Что ты умеешь?",
   "Какие пары в понедельник?",
   "Как у меня с оценками?",
   "Как заказать справку?",
   "Какой ближайший дедлайн?",
   "Какие помещения доступны?",
-  "Когда оплачивать общежитие?",
+  "Где найти правила оплаты общежития?",
 ];
 const types = {
   enrollment: "Справка об обучении",
@@ -110,16 +110,15 @@ function ActionCard({ action, result, busy, error, onConfirm, navigate }) {
   );
 }
 
-export function AIAssistant({ data, onNavigate, notify, refresh }) {
+export function AIAssistant({ data, onNavigate, notify, refresh, session, query, setQuery }) {
   const [status, setStatus] = useState(null);
   const [statusError, setStatusError] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(session.messages || []);
   const [restoredActions, setRestoredActions] = useState([]);
-  const [results, setResults] = useState({});
+  const [results, setResults] = useState(session.results || {});
   const [actionErrors, setActionErrors] = useState({});
   const [confirming, setConfirming] = useState("");
-  const [conversationId, setConversationId] = useState(undefined);
-  const [query, setQuery] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const lock = useRef(false);
@@ -159,7 +158,7 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
         ? `${route}/${encodeURIComponent(focusId)}`
         : route;
   }
-  async function ask(text) {
+  async function ask(text, shareQuestion = false) {
     if (lock.current) return;
     const value = text.trim();
     if (!value) {
@@ -172,30 +171,27 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
     setError("");
     setQuery(value);
     try {
-      const history = messages.slice(-6).flatMap((item) => [
-        { role: "user", content: item.question.slice(0, 2000) },
-        { role: "assistant", content: item.answer.reply.slice(0, 2000) },
-      ]);
       const answer = await api("/assistant/chat", {
         method: "POST",
         body: {
           message: value,
-          history,
-          ...(conversationId ? { conversationId } : {}),
+          shareQuestion: status?.configured === true && shareQuestion,
+          ...(session.conversationId ? { conversationId: session.conversationId } : {}),
         },
       });
-      if (!alive.current) return;
-      setMessages((current) => [
-        ...current.slice(-11),
+      session.messages = [
+        ...(session.messages || []),
         { id: crypto.randomUUID(), question: value, answer },
-      ]);
-      setConversationId(answer.conversationId);
+      ];
+      session.conversationId = answer.conversationId;
+      if (!alive.current) return;
+      setMessages(session.messages);
       setQuery("");
       inputRef.current?.focus();
     } catch (cause) {
       if (!alive.current) return;
       setError(cause.message);
-      if (cause.status === 404) setConversationId(undefined);
+      if (cause.status === 404) delete session.conversationId;
     } finally {
       lock.current = false;
       if (alive.current) setLoading(false);
@@ -212,7 +208,8 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
         { method: "POST", body: { confirmed: true } },
       );
       if (!alive.current) return;
-      setResults((current) => ({ ...current, [action.id]: response.result }));
+      session.results = { ...session.results, [action.id]: response.result };
+      setResults(session.results);
       notify?.("Действие подтверждено и выполнено.");
       try {
         await refresh?.();
@@ -253,11 +250,7 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
     <div className="ai-page">
       <div className="page-heading">
         <div>
-          <span className="ai-eyebrow">Ответы и действия в одном месте</span>
           <h1>Навигатор</h1>
-          <p className="muted">
-            Ваш помощник по расписанию, документам и кампусу.
-          </p>
         </div>
       </div>
       <section
@@ -274,24 +267,7 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
               {data?.user?.firstName ? `, ${data.user.firstName}` : ""}?
             </h2>
             <p>
-              Найду нужный раздел или правило, помогу подготовить справку и
-              бронь. Каждое действие вы подтверждаете сами.
-            </p>
-          </div>
-        </div>
-        <div className="ai-disclosure">
-          <ShieldCheck size={18} aria-hidden="true" />
-          <div>
-            <strong>
-              {status
-                ? status.configured
-                  ? `Yandex AI${status.model ? ` · ${status.model}` : ""}`
-                  : "Локальный демопомощник"
-                : "Проверяем режим помощника…"}
-            </strong>
-            <p>
-              {status?.disclosure ||
-                "Подключение к внешней модели проверяется сервером."}
+              Найду раздел или документ и отвечу на уточнения.
             </p>
           </div>
         </div>
@@ -306,7 +282,7 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
               type="button"
               key={prompt}
               disabled={loading}
-              onClick={() => ask(prompt)}
+              onClick={() => { if (!status?.configured) return ask(prompt); setQuery(prompt); inputRef.current?.focus(); }}
             >
               {prompt}
               <ArrowRight size={15} aria-hidden="true" />
@@ -345,9 +321,11 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
                 <Compass size={19} aria-hidden="true" />
                 <div className="ai-answer-content">
                   <span className="ai-mode">
-                    {message.answer.mode === "yandex"
-                      ? "С помощью Yandex AI"
-                      : "Локальный ответ"}
+                    {message.answer.mode === "gigachat"
+                      ? `Ответ ${message.answer.model}`
+                      : message.answer.mode === "yandex"
+                        ? "С помощью Yandex AI"
+                        : "Локальный ответ"}
                   </span>
                   <p className="ai-reply">{message.answer.reply}</p>
                   {message.answer.warning && (
@@ -419,7 +397,7 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
           className="ai-form"
           onSubmit={(event) => {
             event.preventDefault();
-            ask(query);
+            ask(query, event.nativeEvent.submitter?.value === "external");
           }}
         >
           <label htmlFor="ai-query">Ваш вопрос навигатору</label>
@@ -438,12 +416,13 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
               className="button"
               type="submit"
               disabled={loading}
-              aria-label="Задать вопрос"
+              value={status?.configured ? "external" : "local"}
             >
               <ArrowRight size={20} aria-hidden="true" />
-              <span>Задать вопрос</span>
+              <span>{status?.configured ? `Спросить ${status.provider}` : "Задать вопрос"}</span>
             </button>
           </div>
+          {status?.configured && <button type="submit" value="local" className="ai-link" disabled={loading}>Искать локально</button>}
         </form>
         {error && (
           <p className="ai-error" role="alert">
@@ -451,9 +430,8 @@ export function AIAssistant({ data, onNavigate, notify, refresh }) {
           </p>
         )}
         <p className="ai-note" id="ai-chat-note">
-          В демо «сегодня» — 16 ноября 2026, время московское. Используйте
-          вымышленные сведения. История чата исчезнет при выходе из раздела;
-          подготовленные действия доступны 10 минут.
+          {status?.configured ? status.disclosure : "Локальный демопомощник"}
+          {" · Чат хранится до выхода из аккаунта или обновления страницы."}
         </p>
       </section>
     </div>

@@ -15,9 +15,9 @@ import {
   Trash2,
 } from "lucide-react";
 import api from "../api";
+import { DEMO_WEEK_END, DEMO_WEEK_START, isOverdue } from "../calendar.js";
 import "./planner.css";
 
-const lastDemoDate = "2026-11-22";
 const dateLabel = (value) =>
   value
     ? new Intl.DateTimeFormat("ru-RU", {
@@ -33,11 +33,11 @@ const orderItems = (a, b) =>
 
 export function Planner({ data, refresh, notify, focusId }) {
   const referenceDate =
-    data.plan?.referenceDate || data.referenceDate || "2026-11-16";
+    data.plan?.referenceDate || DEMO_WEEK_START;
   const [items, setItems] = useState(data.plan?.items || []);
   const [filter, setFilter] = useState("active");
   const [title, setTitle] = useState("");
-  const [dueDate, setDueDate] = useState(referenceDate);
+  const [dueDate, setDueDate] = useState("");
   const [busy, setBusy] = useState(null);
   const [formError, setFormError] = useState("");
   const [actionError, setActionError] = useState("");
@@ -85,6 +85,10 @@ export function Planner({ data, refresh, notify, focusId }) {
     )
     .sort(orderItems);
   const missingFocus = focused && !items.some((item) => item.id === focused);
+  const planGroup = (item) =>
+    item.completed ? "Готово" :
+      isOverdue(item, data.todayDate) ? "Просрочено" :
+        item.dueDate ? "Предстоящие" : "Без срока";
 
   async function reload() {
     try {
@@ -148,7 +152,7 @@ export function Planner({ data, refresh, notify, focusId }) {
       setFormError("Введите название: от 1 до 120 символов.");
       return;
     }
-    if (dueDate && (dueDate < referenceDate || dueDate > lastDemoDate)) {
+    if (dueDate && (dueDate < referenceDate || dueDate > DEMO_WEEK_END)) {
       setFormError("Выберите дату с 16 по 22 ноября или оставьте срок пустым.");
       return;
     }
@@ -165,6 +169,8 @@ export function Planner({ data, refresh, notify, focusId }) {
         headers: { "Idempotency-Key": idempotency.current.key },
         body,
       });
+      if (typeof result?.item?.id !== "string")
+        throw new Error("Не удалось прочитать сохранённую задачу. Повторите отправку.");
       idempotency.current = null;
       setItems((current) =>
         current.some((item) => item.id === result.item.id)
@@ -335,7 +341,10 @@ export function Planner({ data, refresh, notify, focusId }) {
             </p>
           )}
           <div className="plan-items">
-            {visible.map((item) => (
+            {visible.flatMap((item, index) => [
+              (index === 0 || planGroup(visible[index - 1]) !== planGroup(item)) && (
+                <h3 className="plan-item-group" key={planGroup(item)}>{planGroup(item)}</h3>
+              ),
               <article
                 className={`plan-item ${item.completed ? "plan-item-done" : ""} ${focused === item.id ? "plan-focused" : ""}`}
                 id={`plan-item-${item.id}`}
@@ -429,8 +438,8 @@ export function Planner({ data, refresh, notify, focusId }) {
                     </div>
                   </div>
                 )}
-              </article>
-            ))}
+              </article>,
+            ])}
           </div>
           {!visible.length && (
             <div className="plan-empty">
@@ -515,7 +524,7 @@ export function Planner({ data, refresh, notify, focusId }) {
                 id="plan-date"
                 type="date"
                 min={referenceDate}
-                max={lastDemoDate}
+                max={DEMO_WEEK_END}
                 value={dueDate}
                 onChange={(e) => {
                   setDueDate(e.target.value);

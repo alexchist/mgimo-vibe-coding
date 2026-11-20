@@ -8,10 +8,12 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { createApp } from "../server/app.mjs";
 
 test("local stdio bridge speaks MCP to the HTTP server without exposing the bearer token", async () => {
+  let now = Date.parse("2026-11-22T20:59:59Z");
   const app = createApp({
     databasePath: ":memory:",
     campus: { paymentMode: "demo" },
     assistant: { yandex: { apiKey: "", folderId: "", model: "" } },
+    mcp: { now: () => now },
   });
   const listener = await new Promise((resolve) => {
     const s = app.listen(0, "127.0.0.1", () => resolve(s));
@@ -63,6 +65,28 @@ test("local stdio bridge speaks MCP to the HTTP server without exposing the bear
     assert.notEqual(result.isError, true);
     assert.equal(result.structuredContent.date, "2026-11-17");
     assert.ok(result.structuredContent.lessons.length > 0);
+    const beforeMidnight = await client.callTool({
+      name: "get_schedule",
+      arguments: {},
+    });
+    assert.equal(beforeMidnight.structuredContent.date, "2026-11-22");
+    assert.equal(beforeMidnight.structuredContent.available, true);
+    assert.deepEqual(beforeMidnight.structuredContent.lessons, []);
+    now += 1000;
+    const afterMidnight = await client.callTool({
+      name: "get_schedule",
+      arguments: {},
+    });
+    assert.equal(afterMidnight.structuredContent.date, "2026-11-23");
+    assert.equal(afterMidnight.structuredContent.available, true);
+    assert.equal(afterMidnight.structuredContent.demoWeek, "23–29 ноября 2026");
+    assert.ok(afterMidnight.structuredContent.lessons.length > 0);
+    const explicitJudgingDate = await client.callTool({
+      name: "get_schedule",
+      arguments: { date: "2026-11-24" },
+    });
+    assert.equal(explicitJudgingDate.structuredContent.date, "2026-11-24");
+    assert.ok(explicitJudgingDate.structuredContent.lessons.length > 0);
     assert.equal(
       (await client.callTool({ name: "get_profile", arguments: {} })).isError,
       true,

@@ -71,7 +71,7 @@
   gap: 15px;
   background: #fff0dc;
   border: 1px solid #f2dfc4;
-  padding: 18px 22px;
+  padding: 6px 16px;
   border-radius: 18px;
   margin-bottom: 22px;
 }
@@ -136,14 +136,6 @@
   background: white;
   color: #1b5149;
   box-shadow: 0 1px 5px #142d2910;
-}
-.ac-calendar-range {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-  color: #68766d;
-  font-size: 12px;
-  white-space: nowrap;
 }
 .ac-weekdays {
   display: grid;
@@ -1075,9 +1067,6 @@
     margin-bottom: 20px;
     gap: 12px;
   }
-  .ac-page-top:has(.ac-export) {
-    flex-wrap: wrap;
-  }
   .ac-eyebrow {
     font-size: 9px;
   }
@@ -1089,7 +1078,7 @@
     padding: 10px 13px !important;
   }
   .ac-schedule-notice {
-    padding: 15px;
+    padding: 4px 12px;
     gap: 10px;
     flex-wrap: wrap;
   }
@@ -1103,19 +1092,9 @@
   .ac-schedule-notice p {
     font-size: 10px;
   }
-  .ac-text-button {
-    margin-left: 30px;
-    padding: 0;
-  }
   .ac-calendar-toolbar {
     padding: 17px 14px;
     gap: 8px;
-  }
-  .ac-calendar-range {
-    font-size: 10px;
-  }
-  .ac-calendar-range svg {
-    display: none;
   }
   .ac-segmented button {
     padding: 8px 10px;
@@ -1338,13 +1317,106 @@
     align-items: flex-start;
     flex-wrap: wrap;
   }
-  .ac-calendar-range {
-    align-self: center;
-  }
   .ac-session-score small {
     font-size: 10px;
   }
   .ac-summary-small > strong {
     flex-wrap: wrap;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ac-page-top {
+    margin-bottom: 16px;
+  }
+  .ac-page-top > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 16px;
+  }
+  .ac-page-top .ac-eyebrow {
+    display: none;
+  }
+  .ac-page-top .ac-subtitle {
+    margin: 0;
+  }
+  .ac-schedule-notice {
+    gap: 12px;
+    padding: 2px 16px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+  .ac-schedule-notice > div {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 12px;
+  }
+  .ac-schedule-notice p {
+    margin: 0;
+  }
+  .ac-calendar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .ac-calendar-toolbar {
+    padding: 8px 16px;
+  }
+  .ac-weekdays {
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px 8px 0;
+  }
+  .ac-weekdays button {
+    flex-direction: row;
+    gap: 5px;
+    padding: 0 3px;
+    min-height: 44px;
+    min-width: 0;
+  }
+  .ac-day-dot {
+    flex-shrink: 0;
+  }
+  .ac-filters,
+  .ac-schedule-body {
+    grid-column: 1 / -1;
+  }
+  .ac-filters {
+    padding: 6px 16px;
+  }
+  .ac-schedule-body {
+    padding: 12px 16px 16px;
+  }
+  .ac-day-title {
+    margin-bottom: 8px;
+  }
+  .ac-lessons {
+    gap: 8px;
+  }
+  .ac-lesson {
+    padding: 10px 16px;
+  }
+  .ac-lesson-time {
+    gap: 3px;
+  }
+  .ac-lesson-time .ac-lesson-number {
+    margin-top: 5px;
+  }
+  .ac-lesson h3 {
+    margin: 4px 0 6px;
+  }
+  .ac-change-note {
+    margin-top: 6px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .ac-calendar-toolbar,
+  .ac-weekdays {
+    grid-column: 1 / -1;
+  }
+  .ac-weekdays {
+    padding-inline: 16px;
   }
 }

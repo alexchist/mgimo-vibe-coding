@@ -1,0 +1,11 @@
+services:
+  app:
+    environment:
+      GIGACHAT_CA_FILE: /run/gigachat/ca.pem
+    volumes:
+      - type: bind
+        source: ${GIGACHAT_CA_HOST_FILE:?Set GIGACHAT_CA_HOST_FILE to a trusted PEM file}
+        target: /run/gigachat/ca.pem
+        read_only: true
+        bind:
+          create_host_path: false

@@ -4,6 +4,11 @@ dist
 data
 .env
 .env.*
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.crt
 docs
 test-results
 playwright-report

@@ -1,5 +1,6 @@
+import { scheduleWeeks } from "../src/calendar.js";
+
 // All identities, schedules and records in this fixture are fictional.
-export const REFERENCE_DATE = "2026-11-16";
 export const SEMESTER = "Осенний семестр 2026";
 
 const students = [
@@ -96,7 +97,8 @@ const catalog = [
   ],
 ];
 
-function scheduleFor(student, index) {
+function scheduleFor(student, index, week = scheduleWeeks[0]) {
+  const judgingWeek = week === scheduleWeeks[1];
   const rows = [
     [1, "09:00", "10:20", 0, "Лекция", "314", false],
     [1, "10:35", "11:55", 1, "Практика", "215", true],
@@ -113,9 +115,9 @@ function scheduleFor(student, index) {
     [5, "12:25", "13:45", 1, "Практика", "215", false],
   ];
   return rows.map(([day, start, end, course, type, room, changed], i) => ({
-    id: `${student.id}-lesson-${i + 1}`,
+    id: `${student.id}-lesson-${judgingWeek ? "w2-" : ""}${i + 1}`,
     day,
-    date: `2026-11-${15 + day}`,
+    date: week.dates[day - 1],
     start,
     end,
     subject:
@@ -133,6 +135,27 @@ function scheduleFor(student, index) {
       : "",
     originalRoom: changed ? "208" : "",
   }));
+}
+
+// This runs on both fresh and existing databases. Only missing fixture rows are added.
+export function seedJudgingSchedule(db) {
+  const addLesson = db.prepare(`
+    INSERT INTO records (id, user_id, kind, payload_json)
+    SELECT ?, id, 'schedule', ? FROM users WHERE id = ?
+    ON CONFLICT(id) DO NOTHING
+  `);
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    students.forEach((student, index) => {
+      for (const lesson of scheduleFor(student, index, scheduleWeeks[1])) {
+        addLesson.run(lesson.id, JSON.stringify(lesson), student.id);
+      }
+    });
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
 }
 
 function gradesFor(student, index) {
@@ -294,7 +317,6 @@ function notificationsFor(student) {
 }
 
 export function seedDatabase(db) {
-  if (db.prepare("SELECT COUNT(*) AS n FROM users").get().n > 0) return;
   const addUser = db.prepare(
     "INSERT INTO users (id, login, password_hash, profile_json) VALUES (?, ?, ?, ?)",
   );
@@ -303,6 +325,10 @@ export function seedDatabase(db) {
   );
   db.exec("BEGIN IMMEDIATE");
   try {
+    if (db.prepare("SELECT 1 FROM users LIMIT 1").get()) {
+      db.exec("COMMIT");
+      return;
+    }
     students.forEach((student, index) => {
       const { passwordHash, ...profile } = student;
       addUser.run(

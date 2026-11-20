@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const runtimeErrors = new WeakMap();
 test.beforeEach(async ({ page }) => {
@@ -226,9 +228,10 @@ test("schedule filters, real calendar download and grade details work", async ({
   page,
 }) => {
   await seedSession(page);
+  await page.clock.setFixedTime(new Date("2026-11-18T08:00:00Z"));
   await openSection(page, "schedule", "Расписание");
   await expect(
-    page.getByText("Перед парой — проверьте аудиторию", { exact: true }),
+    page.getByText("Изменения в демо-расписании", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: /Воскресенье, 22 ноября/ }).click();
   await expect(
@@ -265,6 +268,15 @@ test("schedule filters, real calendar download and grade details work", async ({
   expect(calendarText).toContain("BEGIN:VCALENDAR");
   expect(calendarText).toContain("DTSTART:20261116T060000Z");
   expect(calendarText.match(/BEGIN:VEVENT/g)).toHaveLength(13);
+  await page.getByRole("button", { name: "23–29 ноября 2026" }).click();
+  const secondDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Экспорт недели", exact: true }).click();
+  const secondCalendar = await secondDownload;
+  expect(secondCalendar.suggestedFilename()).toBe("kursom-2026-11-23.ics");
+  const secondCalendarText = await readFile(await secondCalendar.path(), "utf8");
+  expect(secondCalendarText).toContain("DTSTART:20261123T060000Z");
+  expect(secondCalendarText).not.toContain("DTSTART:20261116");
+  expect(secondCalendarText.match(/BEGIN:VEVENT/g)).toHaveLength(13);
 
   await openSection(page, "grades", "Успеваемость");
   await page
@@ -430,4 +442,95 @@ test("360px viewport supports every section and a new request without overflow",
     page.getByRole("heading", { name: "Ветров Марк Ильич", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("МЭО-23-02", { exact: true })).toBeVisible();
+});
+
+test("desktop sidebar keeps section search and unread count while mobile keeps its header", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 850 });
+  await seedSession(page, "mark@demo.orbita");
+  await page.goto("/");
+  const data = await (await page.request.get("/api/bootstrap")).json();
+  const unread = data.notifications.filter((item) => !item.read).length;
+  await expect(page.locator(".topbar")).toBeHidden();
+  await expect(page.locator(".sidebar .nav-count")).toHaveText(String(unread));
+  const search = page.getByRole("textbox", {
+    name: "Найти раздел в кабинете",
+    exact: true,
+  });
+  await expect(search).toHaveCount(1);
+  await search.fill("успеваемость");
+  await expect(
+    page
+      .locator(".search-results")
+      .getByRole("button", { name: "Успеваемость" }),
+  ).toBeVisible();
+  await search.press("Escape");
+  await expect(page.locator(".search-results")).toBeHidden();
+  await search.fill("справки");
+  await search.press("Enter");
+  await expect(page).toHaveURL(/#requests$/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Документы и заявки" }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 760, height: 850 });
+  await expect(page.locator(".topbar")).toBeVisible();
+  await page.getByRole("button", { name: "Открыть меню" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Меню кабинета" }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 761, height: 850 });
+  await expect(page.locator(".topbar")).toBeHidden();
+  await expect(page.locator(".app-body")).not.toHaveAttribute("inert");
+});
+
+test("a saved task is restored after browser restart and repeat login to its account", async ({
+  playwright,
+  baseURL,
+}) => {
+  const directory = await mkdtemp(join(tmpdir(), "orbita-browser-"));
+  const title = `Дело после возврата ${Date.now()}`;
+  const launch = () =>
+    playwright.chromium.launchPersistentContext(directory, {
+      executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium",
+      args: ["--no-sandbox"],
+      baseURL,
+      viewport: { width: 1280, height: 850 },
+    });
+  let context;
+  try {
+    context = await launch();
+    let page = context.pages()[0];
+    await page.goto("/");
+    await loginThroughForm(page);
+    await page.getByRole("link", { name: "Мой план", exact: true }).click();
+    await page.getByLabel("Название задачи", { exact: true }).fill(title);
+    await page
+      .getByRole("button", { name: "Добавить задачу", exact: true })
+      .click();
+    await expect(page.getByText(title, { exact: true })).toBeVisible();
+    await context.close();
+    context = await launch();
+    page = context.pages()[0];
+    await page.goto("/#plan");
+    await expect(page.getByText(title, { exact: true })).toBeVisible();
+    await page
+      .getByRole("button", { name: "Выйти из аккаунта", exact: true })
+      .click();
+    await loginThroughForm(page, "mark@demo.orbita");
+    await page.getByRole("link", { name: "Мой план", exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Мой план", level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByText(title, { exact: true })).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Выйти из аккаунта", exact: true })
+      .click();
+    await loginThroughForm(page);
+    await page.getByRole("link", { name: "Мой план", exact: true }).click();
+    await expect(page.getByText(title, { exact: true })).toBeVisible();
+  } finally {
+    await context?.close();
+    await rm(directory, { recursive: true, force: true });
+  }
 });

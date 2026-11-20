@@ -34,6 +34,19 @@
 .svc-request-form {
   padding: 27px;
 }
+@media (min-width: 1024px) {
+  .svc-requests-page .page-heading {
+    margin-bottom: 16px;
+  }
+  .svc-requests-page .page-heading h1 {
+    margin-bottom: 0;
+  }
+  .svc-requests-page .page-heading .svc-eyebrow,
+  .svc-requests-page .page-heading p,
+  .svc-requests-page .page-heading .svc-private-label {
+    display: none;
+  }
+}
 .svc-card-heading {
   display: flex;
   align-items: center;

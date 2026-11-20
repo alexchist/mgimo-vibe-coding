@@ -11,7 +11,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { openDatabase } from "./database.mjs";
-import { REFERENCE_DATE, SEMESTER } from "./seed.mjs";
+import { SEMESTER } from "./seed.mjs";
+import { DEMO_WEEK_START, moscowDate } from "../src/calendar.js";
 import { installPlanner } from "./planner.mjs";
 import { installCampus } from "./campus.mjs";
 import { installKnowledge } from "./knowledge.mjs";
@@ -347,7 +348,8 @@ export function createApp(options = {}) {
     const data = {
       user: req.user,
       semester: SEMESTER,
-      referenceDate: REFERENCE_DATE,
+      referenceDate: DEMO_WEEK_START,
+      todayDate: moscowDate(),
       plan: getPlan(req.user.id),
     };
     for (const kind of [
@@ -498,6 +500,6 @@ body{font:16px/1.7 system-ui,sans-serif;color:#162333;margin:0;background:#f6f7f
 <h1>${e(TYPES[request.type])}</h1><p>Демонстрационный макет по заявке ${e(request.number)}.</p>
 <dl><dt>Студент</dt><dd>${e(user.fullName)}</dd><dt>Факультет</dt><dd>${e(user.faculty)}</dd><dt>Направление</dt><dd>${e(user.program)}</dd><dt>Курс и группа</dt><dd>${e(user.year)} курс · ${e(user.group)}</dd><dt>Цель</dt><dd>${e(request.purpose)}</dd><dt>Комментарий</dt><dd>${e(request.comment || "Не указан")}</dd></dl>
 <p>Этот файл показывает сценарий получения документа в конкурсном прототипе. Данные вымышлены; сведения об обучении, стипендии, успеваемости или отпуске ничем не подтверждаются.</p>
-<p class="small">Курсом — независимый концепт, не официальный сервис МГИМО или другого вуза. Печатей и подписей нет. Макет не имеет юридической силы и не предназначен для предоставления в организации.</p>
+<p class="small">Курсом — независимый концепт, не официальный сервис вуза. Печатей и подписей нет. Макет не имеет юридической силы и не предназначен для предоставления в организации.</p>
 </main></body></html>`;
 }

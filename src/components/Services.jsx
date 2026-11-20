@@ -423,7 +423,7 @@ export function Requests({ data, refresh, notify, focusId }) {
   }
 
   return (
-    <div className="svc-page">
+    <div className="svc-page svc-requests-page">
       <div className="page-heading">
         <div>
           <span className="svc-eyebrow">Без очередей и бумажек</span>

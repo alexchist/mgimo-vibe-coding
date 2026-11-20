@@ -6,8 +6,8 @@ import { join } from "node:path";
 import { createApp } from "../server/app.mjs";
 import { navigatorAnswer } from "../src/navigator.js";
 
-async function start(databasePath = ":memory:") {
-  const app = createApp({ databasePath, secureCookies: false });
+async function start(databasePath = ":memory:", options = {}) {
+  const app = createApp({ databasePath, secureCookies: false, ...options });
   const server = await new Promise((resolve) => {
     const listener = app.listen(0, "127.0.0.1", () => resolve(listener));
   });
@@ -53,7 +53,7 @@ async function start(databasePath = ":memory:") {
     },
     close: async () => {
       await new Promise((resolve) => server.close(resolve));
-      app.locals.close();
+      await app.locals.close();
     },
   };
 }
@@ -311,6 +311,7 @@ test("navigator respects document intent, relative dates, subject and missing in
   try {
     const session = await service.login();
     const data = (await service.call("/bootstrap", { session })).json;
+    data.todayDate = "2026-11-16";
     const tomorrow = navigatorAnswer("Какие пары завтра?", data);
     assert.match(tomorrow.text, /17 ноября/);
     assert.equal(tomorrow.focusId, "day-2");
@@ -337,12 +338,109 @@ test("navigator respects document intent, relative dates, subject and missing in
       navigatorAnswer("Какие экзамены сегодня?", data).text,
       /на 16 ноября.*нет/,
     );
-    assert.match(
-      navigatorAnswer("Какие пары на следующей неделе?", data).text,
-      /Для других дат данных нет/,
-    );
+    const judgingWeek = navigatorAnswer("Какие пары на следующей неделе?", data);
+    assert.match(judgingWeek.text, /23–29 ноября 2026/);
+    assert.equal(judgingWeek.focusId, "week-2");
     assert.equal(navigatorAnswer("Какие пары в среду?", data).focusId, "day-3");
+    data.todayDate = "2026-11-22";
+    const nextMonday = navigatorAnswer("Какие пары завтра?", data);
+    assert.match(nextMonday.text, /23 ноября.*09:00/);
+    assert.equal(nextMonday.focusId, "2026-11-23");
+    data.todayDate = "2026-11-29";
+    const afterWeek = navigatorAnswer("Какие пары завтра?", data);
+    assert.match(afterWeek.text, /30 ноября.*расписания нет/);
+    assert.equal(afterWeek.focusId, "week-2");
   } finally {
     await service.close();
+  }
+});
+
+test("existing databases receive both judging schedules without rewriting stored state", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "orbita-schedule-upgrade-"));
+  const path = join(directory, "demo.sqlite");
+  let service = await start(path);
+  t.after(async () => {
+    await service.close();
+    await rm(directory, { recursive: true, force: true });
+  });
+  const sessions = await Promise.all(["alisa", "mark"].map((name) =>
+    service.login(`${name}@demo.orbita`),
+  ));
+  const db = service.app.locals.db;
+  db.prepare("DELETE FROM records WHERE kind = 'schedule' AND id LIKE '%-lesson-w2-%'").run();
+  const mark = (await service.call("/bootstrap", { session: sessions[1] })).json;
+  const updated = await service.call(`/plan/${mark.plan.items[0].id}`, {
+    method: "PATCH", session: sessions[1], body: { completed: true },
+  });
+  assert.equal(updated.status, 200);
+  const saved = await service.call("/plan", {
+    method: "POST", session: sessions[0],
+    headers: { "Idempotency-Key": "before-judging-upgrade" },
+    body: { title: "Сохранённая задача", dueDate: "2026-11-20" },
+  });
+  assert.equal(saved.status, 201);
+  const tables = ["users", "records", "sessions", "planner_keys", "request_keys"];
+  function snapshot(db) {
+    return tables.map((table) => db.prepare(
+      `SELECT * FROM ${table}${table === "records" ? " WHERE id NOT LIKE '%-lesson-w2-%'" : ""} ORDER BY rowid`,
+    ).all());
+  }
+  const previousState = snapshot(db);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await service.close();
+    service = await start(path);
+    assert.deepEqual(snapshot(service.app.locals.db), previousState);
+    for (const session of sessions) {
+      const response = await service.call("/bootstrap", { session });
+      assert.equal(response.status, 200);
+      const { schedule, user } = response.json;
+      assert.ok(schedule.every(({ id }) => id.startsWith(user.id)));
+      assert.equal(schedule.filter(({ date }) => date < "2026-11-23").length, 13);
+      assert.equal(schedule.filter(({ date }) => date >= "2026-11-23").length, 13);
+      assert.equal(new Set(schedule.map(({ id }) => id)).size, 26);
+    }
+  }
+});
+
+test("Navigator tracks Moscow class boundaries and separates overdue tasks for both accounts", async (t) => {
+  let time;
+  const service = await start(":memory:", { assistant: { now: () => Date.parse(time) } });
+  t.after(() => service.close());
+  for (const [login, subject] of [
+    ["alisa", "История международных отношений"],
+    ["mark", "Мировые финансовые рынки"],
+  ]) {
+    const session = await service.login(`${login}@demo.orbita`);
+    const ask = async (message) => {
+      const result = await service.call("/assistant/chat", {
+        method: "POST", session, body: { message },
+      });
+      assert.equal(result.status, 200);
+      return result.json;
+    };
+    for (const [date, focusId] of [["2026-11-16", "day-1"], ["2026-11-23", "2026-11-23"]]) {
+      for (const [utc, expected] of [
+        ["05:59:59", new RegExp(`Следующая пара.*${subject}`)],
+        ["06:00:00", new RegExp(`Идёт сейчас.*${subject}`)],
+        ["07:20:00", /Следующая пара.*Английский язык/],
+        ["10:45:00", /Пары на сегодня закончились/],
+      ]) {
+        time = `${date}T${utc}Z`;
+        const answer = await ask("Какая сейчас пара?");
+        assert.match(answer.reply, expected);
+        assert.equal(answer.links[0].focusId, focusId);
+      }
+    }
+    time = "2026-11-23T06:00:00Z";
+    assert.match((await ask("Какая следующая пара?")).reply, /Следующая пара.*Английский язык/);
+    time = "2026-11-22T20:59:59Z";
+    assert.match((await ask("Какие пары сегодня?")).reply, /Сегодня без пар/);
+    time = "2026-11-22T21:00:00Z";
+    assert.equal((await ask("Какие пары сегодня?")).links[0].focusId, "2026-11-23");
+    const overdue = await ask("Какие дедлайны просрочены?");
+    assert.match(overdue.reply, /Просрочено.*17 ноября/);
+    assert.match((await ask("Какой ближайший дедлайн?")).reply, /Ближайших учебных дедлайнов в плане нет.*Просрочено дел: 3/);
+    time = "2026-11-29T21:00:00Z";
+    assert.match((await ask("Какие пары сегодня?")).reply, /На сегодня нет расписания/);
   }
 });

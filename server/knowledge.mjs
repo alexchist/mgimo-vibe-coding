@@ -474,7 +474,7 @@ export function installKnowledge(app, db, authenticate, options = {}) {
     );
     return { ok: true };
   }
-  function search(userId, query, { limit = 5 } = {}) {
+  function search(userId, query, { limit = 5, scope = "accessible" } = {}) {
     if (
       typeof query !== "string" ||
       query.trim().length < 2 ||
@@ -494,9 +494,10 @@ export function installKnowledge(app, db, authenticate, options = {}) {
       .prepare(
         `SELECT c.id AS chunk_id,c.section,c.content AS quote,d.id AS document_id,d.title,d.fictional,d.version,d.updated_at
       FROM knowledge_chunks c JOIN knowledge_documents d ON d.id=c.document_id
-      WHERE d.owner_id IS NULL OR d.owner_id=?`,
+      WHERE (d.owner_id IS NULL AND ? != 'private')
+        OR (d.owner_id=? AND ? != 'shared')`,
       )
-      .all(userId);
+      .all(scope, userId, scope);
     const corpus = rows.map((row) => ({
       row,
       words: terms(row.quote),
@@ -508,7 +509,7 @@ export function installKnowledge(app, db, authenticate, options = {}) {
     const frequencies = new Map(
       queryTerms.map((term) => [
         term,
-        corpus.filter((entry) => entry.words.includes(term)).length,
+        corpus.filter((entry) => entry.words.includes(term) || entry.titleWords.includes(term)).length,
       ]),
     );
     const ranked = corpus
@@ -516,7 +517,9 @@ export function installKnowledge(app, db, authenticate, options = {}) {
         let score = 0;
         let matched = 0;
         for (const term of queryTerms) {
-          const frequency = words.filter((word) => word === term).length;
+          const frequency =
+            words.filter((word) => word === term).length +
+            (titleWords.includes(term) ? 0.75 : 0);
           if (!frequency) continue;
           matched++;
           const documents = frequencies.get(term);
@@ -534,7 +537,7 @@ export function installKnowledge(app, db, authenticate, options = {}) {
         // Keep a weak single-word match from dominating a focused multi-term query.
         score *= 0.5 + matched / queryTerms.length;
         // A temporal hint alone is not evidence for an otherwise unrelated query.
-        if (!originalTerms.some((term) => words.includes(term))) score = 0;
+        if (!originalTerms.some((term) => words.includes(term) || titleWords.includes(term))) score = 0;
         score *=
           1 +
           queryTerms.filter((term) => titleWords.includes(term)).length /

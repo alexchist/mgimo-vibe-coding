@@ -16,6 +16,16 @@ import {
   TrendingUp,
   UserRound,
 } from "lucide-react";
+import {
+  defaultScheduleWeek,
+  lessonStatusLabels,
+  SCHEDULE_RANGE_LABEL,
+  scheduleDayFromContext,
+  scheduleEmptyLabels,
+  scheduleWeek,
+  scheduleWeeks,
+  todaySchedule,
+} from "../calendar.js";
 import "./academics.css";
 
 const weekdays = [
@@ -64,7 +74,7 @@ function foldCalendarLine(line) {
   return result + current;
 }
 
-function exportCalendar(lessons) {
+function exportCalendar(lessons, weekStart) {
   const stamp = new Date()
     .toISOString()
     .replace(/[-:]/g, "")
@@ -102,14 +112,14 @@ function exportCalendar(lessons) {
   });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = "orbita-demo-16-22-november.ics";
+  link.download = `kursom-${weekStart}.ics`;
   document.body.appendChild(link);
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
-function Lesson({ lesson, index }) {
+function Lesson({ lesson, index, status }) {
   return (
     <article
       className={`ac-lesson ${lesson.changed ? "ac-lesson-changed" : ""}`}
@@ -122,6 +132,7 @@ function Lesson({ lesson, index }) {
       <div className="ac-lesson-content">
         <div className="ac-lesson-top">
           <span className="ac-kind">{lesson.type}</span>
+          {status && <span className="ac-kind">{lessonStatusLabels[status]}</span>}
           {lesson.changed && (
             <span className="ac-change-badge">
               <Info size={13} aria-hidden="true" />
@@ -158,56 +169,59 @@ function Lesson({ lesson, index }) {
 }
 
 export function Schedule({ data, viewContext }) {
-  const [view, setView] = useState("today");
-  const [day, setDay] = useState(1);
+  const contextWeek = scheduleWeeks.find(({ context }) => context === viewContext);
+  const [view, setView] = useState(contextWeek ? "week" : "day");
+  const [selectedDate, setSelectedDate] = useState(() => scheduleDayFromContext(viewContext));
+  const [selectedWeek, setSelectedWeek] = useState(contextWeek);
   const [search, setSearch] = useState("");
   const [changedOnly, setChangedOnly] = useState(false);
   const [exported, setExported] = useState(false);
   useEffect(() => {
-    setView(viewContext === "week" ? "week" : "today");
-    setDay(
-      /^day-[1-7]$/.test(viewContext || "") ? Number(viewContext.slice(-1)) : 1,
-    );
+    setView(contextWeek ? "week" : "day");
+    setSelectedDate(scheduleDayFromContext(viewContext));
+    setSelectedWeek(contextWeek);
     setSearch("");
     setChangedOnly(false);
-  }, [viewContext]);
+  }, [contextWeek, viewContext]);
   const lessons = useMemo(
     () => [...(data.schedule || [])].sort(sortLessons),
     [data.schedule],
   );
-  const filtered = lessons.filter(
+  const dayDate = selectedDate || data.todayDate;
+  const week = selectedWeek || defaultScheduleWeek(dayDate);
+  const dates = week.dates;
+  const weekLessons = lessons.filter((lesson) => dates.includes(lesson.date));
+  const daySchedule = todaySchedule(lessons, data.clock);
+  const filtered = weekLessons.filter(
     (lesson) =>
       (!changedOnly || lesson.changed) &&
       `${lesson.subject} ${lesson.teacher} ${lesson.room}`
         .toLocaleLowerCase("ru")
         .includes(search.toLocaleLowerCase("ru").trim()),
   );
-  const dates = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(`${data.referenceDate || "2026-11-16"}T12:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + index);
-    return date.toISOString().slice(0, 10);
-  });
+  const day = dates.indexOf(dayDate);
+  const showingToday = view === "day" && dayDate === data.todayDate;
+  const hasSchedule = view === "week" || !!scheduleWeek(dayDate);
   const visible =
-    view === "today"
-      ? filtered.filter((lesson) => lesson.day === day)
+    view === "day"
+      ? filtered.filter((lesson) => lesson.date === dayDate)
       : filtered;
-  const changedCount = lessons.filter((lesson) => lesson.changed).length;
+  const changedCount = weekLessons.filter((lesson) => lesson.changed).length;
 
   return (
     <div className="ac-page">
       <div className="ac-page-top">
         <div>
-          <p className="ac-eyebrow">Учёба в вашем ритме</p>
           <h1 className="page-heading">Расписание</h1>
           <p className="ac-subtitle">
-            Демо-неделя · 16–22 ноября 2026 · время московское
+            Демо-расписание · {SCHEDULE_RANGE_LABEL} · время московское
           </p>
         </div>
         <button
           className="button secondary ac-export"
-          disabled={!lessons.length}
+          disabled={!weekLessons.length}
           onClick={() => {
-            exportCalendar(lessons);
+            exportCalendar(weekLessons, week.dates[0]);
             setExported(true);
           }}
         >
@@ -227,13 +241,8 @@ export function Schedule({ data, viewContext }) {
             <Info size={20} aria-hidden="true" />
           </span>
           <div>
-            <strong>Перед парой — проверьте аудиторию</strong>
-            <p>
-              {changedCount === 1
-                ? "В расписании есть одно изменение."
-                : `Изменений в расписании: ${changedCount}.`}{" "}
-              Обновлённые занятия выделены цветом.
-            </p>
+            <strong>Изменения в демо-расписании</strong>
+            {changedCount > 1 && <p>Занятий с изменениями: {changedCount}.</p>}
           </div>
           <button
             className="ac-text-button"
@@ -254,14 +263,16 @@ export function Schedule({ data, viewContext }) {
         <div className="ac-calendar-toolbar">
           <div className="ac-segmented" aria-label="Вид расписания">
             <button
-              className={view === "today" ? "active" : ""}
-              aria-pressed={view === "today"}
+              className={showingToday ? "active" : ""}
+              aria-pressed={showingToday}
               onClick={() => {
-                setView("today");
-                setDay(1);
+                setView("day");
+                setSelectedDate(null);
+                setSelectedWeek(undefined);
+                setChangedOnly(false);
               }}
             >
-              Сегодня в демо
+              Сегодня
             </button>
             <button
               className={view === "week" ? "active" : ""}
@@ -271,28 +282,42 @@ export function Schedule({ data, viewContext }) {
               Вся неделя
             </button>
           </div>
-          <span className="ac-calendar-range">
-            <CalendarDays size={16} aria-hidden="true" />
-            16 — 22 ноября
-          </span>
+          <div className="ac-segmented" role="group" aria-label="Демо-неделя">
+            {scheduleWeeks.map((option) => (
+              <button
+                key={option.context}
+                className={week === option ? "active" : ""}
+                aria-pressed={week === option}
+                onClick={() => {
+                  setSelectedWeek(option);
+                  setSelectedDate(null);
+                  setView("week");
+                  setExported(false);
+                }}
+              >
+                <span aria-hidden="true">{option.label.replace(" 2026", "")}</span>
+                <span className="ac-sr-only">{option.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
         <div className="ac-weekdays" aria-label="День недели">
           {shortDays.map((label, index) => (
             <button
               key={label}
               className={
-                view === "today" && day === index + 1 ? "selected" : ""
+                view === "day" && day === index ? "selected" : ""
               }
               onClick={() => {
-                setDay(index + 1);
-                setView("today");
+                setSelectedDate(dates[index]);
+                setView("day");
               }}
-              aria-pressed={view === "today" && day === index + 1}
-              aria-label={`${label} ${16 + index}, ${weekdays[index]}, ${dateLabel(dates[index])}`}
+              aria-pressed={view === "day" && day === index}
+              aria-label={`${label} ${Number(dates[index].slice(-2))}, ${weekdays[index]}, ${dateLabel(dates[index])}`}
             >
-              <span>{label}</span> <strong>{16 + index}</strong>
+              <span>{label}</span> <strong>{Number(dates[index].slice(-2))}</strong>
               <span
-                className={`ac-day-dot ${lessons.some((lesson) => lesson.day === index + 1) ? "has-classes" : ""}`}
+                className={`ac-day-dot ${weekLessons.some((lesson) => lesson.date === dates[index]) ? "has-classes" : ""}`}
               />
             </button>
           ))}
@@ -327,16 +352,21 @@ export function Schedule({ data, viewContext }) {
                 <CalendarDays size={28} aria-hidden="true" />
               </span>
               <h2>
-                {search || changedOnly
-                  ? "По этим фильтрам занятий нет"
-                  : "День без пар"}
+                {!hasSchedule
+                  ? scheduleEmptyLabels.unavailable
+                  : search || changedOnly
+                    ? "По этим фильтрам занятий нет"
+                    : showingToday ? scheduleEmptyLabels.empty
+                      : view === "week" ? "На этой неделе занятий нет" : "День без пар"}
               </h2>
               <p>
-                {search || changedOnly
-                  ? "Попробуйте другую дисциплину или снимите фильтр изменений."
-                  : "Можно выдохнуть, подготовиться к семинару или заняться своими планами."}
+                {!hasSchedule
+                  ? `Демо-расписание доступно на ${SCHEDULE_RANGE_LABEL}.`
+                  : search || changedOnly
+                    ? "Попробуйте другую дисциплину или снимите фильтр изменений."
+                    : "На выбранный день в расписании занятий нет."}
               </p>
-              {(search || changedOnly) && (
+              {hasSchedule && (search || changedOnly) && (
                 <button
                   className="button secondary"
                   onClick={() => {
@@ -348,10 +378,11 @@ export function Schedule({ data, viewContext }) {
                 </button>
               )}
             </div>
-          ) : view === "today" ? (
+          ) : view === "day" ? (
             <>
               <div className="ac-day-title">
-                <h2>{weekdays[day - 1]}</h2>
+                <h2>{weekdays[day]}</h2>
+                <time dateTime={dayDate}>{dateLabel(dayDate)}</time>
                 <span>
                   {visible.length}{" "}
                   {visible.length === 1
@@ -361,9 +392,12 @@ export function Schedule({ data, viewContext }) {
                       : "занятий"}
                 </span>
               </div>
+              {showingToday && daySchedule.status === "done" && (
+                <p className="ac-subtitle">{scheduleEmptyLabels.done}</p>
+              )}
               <div className="ac-lessons">
                 {visible.map((lesson, index) => (
-                  <Lesson key={lesson.id} lesson={lesson} index={index} />
+                  <Lesson key={lesson.id} lesson={lesson} index={index} status={daySchedule.lessonStatus(lesson)} />
                 ))}
               </div>
             </>
@@ -371,7 +405,7 @@ export function Schedule({ data, viewContext }) {
             <div className="ac-week-list">
               {weekdays.map((label, index) => {
                 const dayLessons = visible.filter(
-                  (lesson) => lesson.day === index + 1,
+                  (lesson) => lesson.date === dates[index],
                 );
                 return dayLessons.length ? (
                   <section key={label} className="ac-week-day">
@@ -385,6 +419,7 @@ export function Schedule({ data, viewContext }) {
                           key={lesson.id}
                           lesson={lesson}
                           index={lessonIndex}
+                          status={daySchedule.lessonStatus(lesson)}
                         />
                       ))}
                     </div>
@@ -397,7 +432,7 @@ export function Schedule({ data, viewContext }) {
       </section>
       <p className="ac-footnote">
         <Info size={15} aria-hidden="true" />
-        Расписание вымышленное. Экспорт содержит всю демонстрационную неделю.
+        Расписание вымышленное. В файл попадут все занятия выбранной недели.
       </p>
     </div>
   );
@@ -581,7 +616,7 @@ export function Grades({ data, viewContext }) {
           <p className="ac-eyebrow">Большая цель — маленькие шаги</p>
           <h1 className="page-heading">Успеваемость</h1>
           <p className="ac-subtitle">
-            {data.semester || "Осенний семестр 2026"} · демонстрационные данные
+            {data.semester || "Осенний семестр 2026"}
           </p>
         </div>
         <span className="ac-semester-badge">
@@ -600,6 +635,7 @@ export function Grades({ data, viewContext }) {
         </div>
       ) : (
         <>
+          <p className="desktop-grade-line">Средневзвешенный балл <b>{average}</b> · {credits} зачётных единиц · Посещаемость <b>{attendance}%</b></p>
           <div className="ac-grade-summary">
             <section className="card ac-summary-main">
               <ScoreRing score={average} />

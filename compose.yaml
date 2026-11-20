@@ -9,6 +9,9 @@ services:
       COOKIE_SECURE: "true"
       TRUST_PROXY: "1"
       APP_ORIGIN: https://${DOMAIN:?Set DOMAIN in .env}
+      GIGACHAT_CREDENTIALS: ${GIGACHAT_CREDENTIALS:-}
+      GIGACHAT_SCOPE: ${GIGACHAT_SCOPE:-}
+      GIGACHAT_MODEL: ${GIGACHAT_MODEL:-}
     volumes:
       - orbita_data:/app/data
     expose:

@@ -1,6 +1,6 @@
 # Shared implementation contract
 
-Brand: «Орбита», independent concept for MGIMO students. Visible «Концепт · неофициальный сервис» and fictional-data notice. Russian premium editorial dashboard: warm #f6f7f9 background, white cards, ink #162333, teal #147d73 primary, pale mint and warm apricot accents. Rounded 20–24px, generous spacing, sidebar desktop, compact mobile header and bottom nav. Icons lucide-react. No external fonts/images needed.
+Brand: «Орбита», independent concept for university students. Visible «Концепт · неофициальный сервис» and fictional-data notice. Russian premium editorial dashboard: warm #f6f7f9 background, white cards, ink #162333, teal #147d73 primary, pale mint and warm apricot accents. Rounded 20–24px, generous spacing, sidebar desktop, compact mobile header and bottom nav. Icons lucide-react. No external fonts/images needed.
 
 Frontend modules exported as named React components:
 
