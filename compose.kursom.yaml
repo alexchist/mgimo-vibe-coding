@@ -1,0 +1,17 @@
+name: kursom
+services:
+  app:
+    env_file:
+      - /etc/kursom/gigachat.env
+    environment:
+      GIGACHAT_CA_FILE: /run/gigachat-ca.pem
+    volumes:
+      - type: bind
+        source: /etc/kursom/gigachat-ca.pem
+        target: /run/gigachat-ca.pem
+        read_only: true
+        bind:
+          create_host_path: false
+  caddy:
+    volumes:
+      - ./deploy/www.caddy:/etc/caddy/conf.d/www.caddy:ro
