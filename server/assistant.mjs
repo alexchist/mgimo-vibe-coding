@@ -50,6 +50,7 @@ const navigationQuestion =
 // A conjunction by itself does not link two independent questions.
 const shortFollowup =
   /^(?:(?:а|и|тогда)\s+)?(?:(?:расскажи|объясни|поясни)\s+)?(?:как|где|куда|когда|сколько|почему|зачем|еще|подробнее|поподробнее|что|продолжи)(?:\s+(?:это|сделать|там|его|их|дней|стоит|долго|времени|еще))*[?!.]*$/;
+const deadlineFollowup = /^(?:(?:а|и|тогда)\s+)?(?:до какого числа|к какому числу|до какой даты|в какой срок)(?:\s+за\s+(?:январь|февраль|март|апрель|май|июнь|июль|август|сентябрь|октябрь|ноябрь|декабрь))?[?!.]*$/;
 const referenceFollowup =
   /(?:^|\s)(?:в|из|по|о)\s+(?:нем|ней|них|нем же)(?=\s|[?!.]|$)|^(?:(?:а|и|тогда)\s+)?(?:что там|где там|как это|почему это|что это значит|приведи (?:еще )?пример|повтори ответ|объясни (?:это|свой ответ)|(?:умножь|раздели|увеличь|уменьши) (?:результат|ответ)|(?:что |а )?если (?:к нему|к этому|добавить|прибавить|убрать|заменить))(?:\s|[?!.]|$)/;
 
@@ -488,6 +489,7 @@ export function installAssistant(app, db, authenticate, dependencies = {}) {
     if (
       !general &&
       /оплат|заплат|начислен|долг.*общежит/.test(query) &&
+      !(deferSearch && /^как\s+(?:оплатить|заплатить)\s+(?:за\s+)?(?:общежитие|общагу)[?!.]*$/.test(query)) &&
       !/правил|приказ|срок|когда|порядок|услов/.test(query)
     )
       return {
@@ -773,7 +775,7 @@ export function installAssistant(app, db, authenticate, dependencies = {}) {
     const query = normalize(message);
     const followup =
       message.length <= 160 &&
-      (shortFollowup.test(query) || referenceFollowup.test(query));
+      (shortFollowup.test(query) || referenceFollowup.test(query) || deadlineFollowup.test(query));
     const scheduleFollowup =
       message.length <= 160 &&
       /^(?:(?:а|и)\s+|на\s+)/.test(query) &&
@@ -809,7 +811,7 @@ export function installAssistant(app, db, authenticate, dependencies = {}) {
       });
 
     const contextQuery = previous?.question
-      ? `${message} ${previous.question}`
+      ? `${message} ${previous.question}${deadlineFollowup.test(query) ? " срок" : ""}`
       : message;
     const privateSources = await findDocuments(userId, contextQuery, "private");
     if (privateSources.length || previous?.kind === "private")
@@ -821,7 +823,7 @@ export function installAssistant(app, db, authenticate, dependencies = {}) {
     let intent = portalIntent(message);
     if (previous?.question && intent.kind === "general") {
       intent = portalIntent(previous.question);
-      if (intent.kind !== "general" && /сколько|долго|когда/.test(query))
+      if (intent.kind !== "general" && (/сколько|долго|когда/.test(query) || deadlineFollowup.test(query)))
         intent = { ...intent, kind: "document" };
     }
     const sharedSources =
@@ -951,7 +953,7 @@ export function installAssistant(app, db, authenticate, dependencies = {}) {
     const context = input.conversationId ? navigatorContext(record) : null;
     const followup =
       message.length <= 160 &&
-      (shortFollowup.test(query) || referenceFollowup.test(query));
+      (shortFollowup.test(query) || referenceFollowup.test(query) || deadlineFollowup.test(query));
     if (
       ownDocumentQuestion.test(query) ||
       (context?.kind === "private" && followup)
